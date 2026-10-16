@@ -9,9 +9,31 @@ export const isPassed = (rec, id) => !!chapterRec(rec, id)?.passedAt;
 const startOf = (rec) => EXPERIENCES.find((e) => e.key === rec.experience)?.start ?? 'prologue';
 
 // 級（設計書 7章）：合格0章は「入門」、合格した章の数 n で (11 − n) 級（序章合格で10級、全10章で1級）。飛ばした章は数えない
+// 全10章に合格して卒業したら「1級・卒業」（段階4-2。段位は 4-3）
 export function rankOf(rec) {
   const passed = ALL_CHAPTERS.filter((id) => isPassed(rec, id)).length;
-  return { passed, label: passed ? `${11 - passed}級` : '入門' };
+  const label = passed ? `${11 - passed}級` : '入門';
+  return { passed, label: passed === ALL_CHAPTERS.length && rec.graduation?.passedAt != null ? `${label}・卒業` : label };
+}
+
+// 卒業試験の状態（段階4-2。ホールデム道場と同じ）：open（全10章に合格）・passed・passedAt（最初に合格した日）・best（最高点）・
+// inProgress（途中なら答えた数・なければ null）
+export function gradState(rec) {
+  const g = rec.graduation ?? { test: null, best: null, passedAt: null };
+  return {
+    open: ALL_CHAPTERS.every((id) => isPassed(rec, id)),
+    passed: g.passedAt != null,
+    passedAt: g.passedAt ?? null,
+    best: g.best ?? null,
+    inProgress: g.test ? g.test.answers.length : null,
+  };
+}
+
+// 卒業試験の次にすること（開いていなければ null）
+function gradNext(g) {
+  if (!g.open) return null;
+  if (g.inProgress !== null) return { kind: 'grad', label: `卒業試験の続き（${g.inProgress + 1}問目から）` };
+  return { kind: 'grad', label: g.passed ? 'もう一度受ける' : '卒業試験を受ける' };
 }
 
 // 章が開く条件：遊べる章で、前の章に合格した・その章の記録がある（手をつけた章は閉じない）・経験で勧めた章の並び以下、のどれか
@@ -27,6 +49,10 @@ export function isOpen(rec, id) {
 export function chapterState(rec, id) {
   const meta = CHAPTERS.find((x) => x.id === id);
   if (!meta) throw new Error(`知らない章: ${id}`);
+  if (id === 'grad') {
+    const g = gradState(rec);
+    return { id, meta, status: g.passed ? 'passed' : g.open ? 'open' : 'locked', passed: g.passed, steps: null, testOnly: false, next: gradNext(g) };
+  }
   if (!meta.playable) return { id, meta, status: 'soon', passed: false, steps: null, testOnly: false, next: null };
   const open = isOpen(rec, id);
   const c = chapterRec(rec, id);
@@ -60,6 +86,8 @@ export const dueCount = (rec, day) => dueToday(rec.reviews, day).length;
 export function resumeTarget(rec, day = null) {
   const r = rec.resume;
   if (r?.kind === 'review' && (day === null || dueToday(rec.reviews, day).length > 0)) return { kind: 'review', chapter: null, label: '今日の復習' };
+  const g = gradState(rec);
+  if (g.inProgress !== null && (r?.kind === 'grad' || g.open)) return { kind: 'grad', chapter: null, label: `卒業試験の続き（${g.inProgress + 1}問目から）` };
   if (r && r.kind !== 'review' && PLAYABLE.includes(r.chapter)) {
     const c = rec.chapters[r.chapter];
     const inProgress = { lecture: isOpen(rec, r.chapter) && !c?.lectureDone, practice: !!c?.practice, test: !!c?.test }[r.kind];
@@ -75,7 +103,8 @@ export function resumeTarget(rec, day = null) {
   const from = PLAYABLE.indexOf(startOf(rec));
   const free = (id) => isOpen(rec, id) && !isPassed(rec, id);
   const first = PLAYABLE.slice(from).find(free) ?? PLAYABLE.find(free);
-  if (!first) return null;
+  // 開いた章が全部合格：全10章に合格して卒業していなければ卒業試験（卒業したら続きからはない）
+  if (!first) return g.open && !g.passed ? { kind: 'grad', chapter: null, label: '卒業試験' } : null;
   const st = chapterState(rec, first);
   return { kind: st.next.kind, chapter: first, label: `${chapterLabel(first)}・${st.next.label}` };
 }

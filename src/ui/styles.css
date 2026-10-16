@@ -397,6 +397,14 @@ button { font:inherit; }
 .dj-hand, .dj-meld, .dj-win, .dj-tiles { display:inline-flex; align-items:flex-end; }
 .dj-win small { margin-right:2px; font-size:10px; font-weight:900; color:#7a1f15; writing-mode:vertical-rl; }
 .dj-info { margin-top:6px; display:flex; align-items:center; justify-content:center; gap:10px; font-size:11.5px; color:#5a4128; }
+/* 段階4-2：図 scene（河は2列・6枚ずつ。リーチの宣言牌は横向き・ツモ切りは薄く） */
+.dj-rivers { display:grid; grid-template-columns:1fr 1fr; gap:6px 8px; margin-bottom:8px; }
+.dj-river { min-width:0; }
+.dj-river > small { display:block; font-size:11px; color:#5a4128; margin-bottom:2px; }
+.dj-rr { display:flex; gap:1px; align-items:flex-end; }
+.dj-rm { display:flex; gap:4px; margin-top:3px; }
+.dj-draw { display:inline-flex; align-items:flex-end; }
+.dj-tg img { opacity:.62; filter:saturate(.75); }
 .dj-dora { display:inline-flex; align-items:center; gap:3px; }
 .dj-note { margin:6px 0 0; font-size:11.5px; text-align:center; color:#7b6146; }
 .dj-trow { display:flex; align-items:center; gap:8px; margin:4px 0; }

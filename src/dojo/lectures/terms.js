@@ -76,4 +76,37 @@ export const TERMS = [
   { term: '倍満', aliases: ['バイマン'], at: 'ch4/lecture/5', says: '倍満（バイマン）' },
   { term: '役満', at: 'ch4/lecture/5', says: '特別に難しい役は「役満」' },
   { term: 'リーチ棒', at: 'ch4/lecture/7', says: 'リーチ棒（場に出た1,000点）' },
+  // 第5章：牌の危なさ（段階4-2 作業7）
+  { term: '放銃', aliases: ['振り込'], at: 'ch5/lecture/1', says: '「放銃（ほうじゅう）」または「振り込み」' },
+  { term: '安全牌', at: 'ch5/lecture/1', says: '「安全牌（あんぜんぱい）」' },
+  { term: '巡目', at: 'ch5/lecture/1', says: '「巡目（じゅんめ）」' },
+  { term: '現物', at: 'ch5/lecture/2', says: '「現物（げんぶつ）」' },
+  { term: '筋', aliases: ['スジ'], at: 'ch5/lecture/3', says: '「筋（スジ）」' },
+  { term: '中筋', at: 'ch5/lecture/3', says: '「中筋（なかすじ）」' },
+  { term: '片筋', at: 'ch5/lecture/3', says: '「片筋（かたすじ）」' },
+  { term: '無筋', at: 'ch5/lecture/3', says: '「無筋（むすじ）」' },
+  { term: '壁', at: 'ch5/lecture/4', says: '「壁（かべ）」' },
+  { term: 'ノーチャンス', at: 'ch5/lecture/4', says: '4枚見えなら「ノーチャンス」' },
+  { term: 'ワンチャンス', at: 'ch5/lecture/4', says: '3枚なら「ワンチャンス」' },
+  // 第6章：相手の手を読む
+  { term: 'ツモ切り', at: 'ch6/lecture/2', says: '引いた牌をそのまま切ることを「ツモ切り」' },
+  { term: '手出し', at: 'ch6/lecture/2', says: '手の中の牌を切ることを「手出し」' },
+  { term: '染め手', at: 'ch6/lecture/3', says: '「染め手（そめて）」' },
+  { term: '清一色', aliases: ['チンイツ'], at: 'ch6/lecture/3', says: '「清一色（チンイツ）」' },
+  { term: 'ダマ', at: 'ch6/lecture/5', says: 'リーチしないで待つことを「ダマ」' },
+  // 第7章：押し引き
+  { term: '押し引き', at: 'ch7/desc', says: 'この判断を押し引きと呼びます' },
+  { term: 'ベタ降り', at: 'ch7/lecture/5', says: '「ベタ降り」と呼びます' },
+  // 第8章：鳴き
+  { term: '喰いタン', at: 'ch8/lecture/2', says: '鳴いた断幺九を「喰いタン」' },
+  { term: '後付け', at: 'ch8/lecture/3', says: '後から役をつけることを「後付け」' },
+  // 第9章：順位を考える
+  { term: 'オーラス', at: 'ch9/desc', says: '最後の局（オーラス）' },
+  { term: 'ウマ', at: 'ch9/desc', says: '順位の点数（ウマ・オカ）' },
+  { term: 'オカ', at: 'ch9/desc', says: '順位の点数（ウマ・オカ）' },
+  { term: '半荘', aliases: ['ハンチャン'], at: 'ch9/lecture/1', says: '「半荘（ハンチャン）」' },
+  { term: '本場', at: 'ch9/lecture/2', says: '「本場（ほんば）」' },
+  { term: '供託', at: 'ch9/lecture/2', says: '「供託（きょうたく）」' },
+  { term: '直撃', at: 'ch9/lecture/3', says: '直接ロンすることを「直撃」' },
+  { term: '起家', aliases: ['チーチャ'], at: 'ch9/lecture/4', says: '「起家（チーチャ）」' },
 ];

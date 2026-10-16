@@ -184,3 +184,76 @@ export function discardKinds(codes) {
   return out;
 }
 export const fmtNum = (n) => Math.round(n).toLocaleString('en-US');
+
+// ---- 第5・7章の部品（段階4-2 作業3）：リーチを受けた場面を種から作る ----
+// 牌山の136枚（5の牌は各色1枚が赤5）
+export const ALL_CODES = ALL_KINDS.flatMap((k) => (k[0] !== 'z' && k[1] === '5' ? [k[0] + '0', k, k, k] : [k, k, k, k]));
+const isYaojiu = (c) => c[0] === 'z' || c[1] === '1' || c[1] === '9';
+export const SEAT_NAME = ['あなた', '下家', '対面', '上家'];
+
+// リーチを受けた場面。席は自分が0、下家1・対面2・上家3。opts：riichiCount（リーチの人の数 1〜2）。
+// 返す値：{ hand（自分の14枚・並べた）, draw（引いた牌）, rivers（席ごとの河 [{ code, riichi, tsumogiri }]）, riichiSeats, dealer,
+//   threats: [{ seat, dealer, safe（現物の種類）}], visible（見えている枚数・自分の手を含む）, own（自分の手の枚数）, turn（巡目）, baopai } か null
+// 現物は scene.js の riichiOf と同じ決まり（その人の河と、宣言の後にほかの人が切った牌。打牌の順は親から席の順）
+export function riichiSpot(rng, { riichiCount = 1 } = {}) {
+  const hand = noisyHand(rng, 3 + Math.floor(rng() * 3));
+  if (!hand) return null;
+  const pool = ALL_CODES.slice();
+  for (const c of hand) {
+    const i = pool.indexOf(c);
+    if (i < 0) return null;
+    pool.splice(i, 1);
+  }
+  const deck = shuffled(rng, pool);
+  const take = (early) => {
+    // 序盤の河は1・9・字牌が多い（3回まで引き直す）
+    for (let t = 0; t < 3; t++) {
+      const k = deck.findIndex((c) => !early || isYaojiu(c));
+      if (k >= 0 && (!early || rng() < 0.75)) return deck.splice(k, 1)[0];
+    }
+    return deck.pop();
+  };
+  const dealer = Math.floor(rng() * 4);
+  const riichiSeats = shuffled(rng, [1, 2, 3]).slice(0, riichiCount).sort();
+  const turn = 7 + Math.floor(rng() * 8);
+  const order = (seat) => (seat - dealer + 4) % 4; // 親から数えた打牌の順
+  const rivers = [0, 1, 2, 3].map((seat) => {
+    const n = turn - (order(seat) < order(0) ? 0 : 1) + (seat === 0 ? 0 : 0);
+    return Array.from({ length: Math.max(4, n) }, (_, i) => ({ code: take(i < 4), riichi: false, tsumogiri: rng() < 0.3 }));
+  });
+  const at = {};
+  for (const s of riichiSeats) {
+    const k = 4 + Math.floor(rng() * Math.max(1, rivers[s].length - 5));
+    at[s] = k;
+    rivers[s][k] = { ...rivers[s][k], riichi: true, tsumogiri: false };
+    for (let i = k + 1; i < rivers[s].length; i++) rivers[s][i] = { ...rivers[s][i], tsumogiri: true };
+  }
+  const baopai = [deck.pop()];
+  const own = countsOf(hand);
+  const visible = countsOf([...hand, ...rivers.flat().map((t) => t.code), ...baopai]);
+  const threats = riichiSeats.map((s) => {
+    const safe = new Set(rivers[s].map((t) => kindOf(t.code)));
+    for (let o = 0; o < 4; o++) {
+      if (o === s) continue;
+      const from = order(o) > order(s) ? at[s] : at[s] + 1;
+      rivers[o].slice(from).forEach((t) => safe.add(kindOf(t.code)));
+    }
+    return { seat: s, dealer: s === dealer, safe: [...safe] };
+  });
+  const draw = hand[Math.floor(rng() * hand.length)];
+  return { hand, draw, rivers, riichiSeats, dealer, threats, visible, own, turn: rivers[0].length + 1, baopai };
+}
+
+// 場面の図（自分の手は引いた牌を分けて出す）。rivers の順：リーチの人 → 残りの席（自分は最後）
+export function spotFigure(spot) {
+  const seats = [...spot.riichiSeats, ...[1, 2, 3].filter((s) => !spot.riichiSeats.includes(s)), 0];
+  const label = (s) => `${SEAT_NAME[s]}${s === spot.dealer ? '（親）' : ''}${spot.riichiSeats.includes(s) ? '・リーチ' : ''}`;
+  return {
+    kind: 'scene',
+    hand: stringOf(without(spot.hand, spot.draw)),
+    draw: spot.draw,
+    baopai: spot.baopai,
+    round: { zhuangfeng: 0, jushu: spot.dealer, turn: spot.turn }, // 自分が起家とみる（東1局は自分が親、東2局は下家が親）
+    rivers: seats.map((s) => ({ label: label(s), tiles: spot.rivers[s] })),
+  };
+}

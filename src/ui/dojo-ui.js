@@ -4,11 +4,11 @@
 // notify(text)：画面の上に少しのあいだ出す知らせ。now：今の日時（日を進めて確かめるときに差し替える）
 import { freshSeed } from '../core/rng.js';
 import { dayOf } from '../coach/problems.js';
-import { PRACTICE_COUNT, EXPERIENCES, chapterLabel } from '../dojo/chapters.js';
-import { resumeTarget, chapterState } from '../dojo/progress.js';
+import { PRACTICE_COUNT, EXPERIENCES, chapterLabel, GRAD_PASS } from '../dojo/chapters.js';
+import { resumeTarget, chapterState, rankOf } from '../dojo/progress.js';
 import * as A from '../dojo/actions.js';
 import { dueToday } from '../dojo/reviews.js';
-import { practiceList, testList, gradeTest } from '../dojo/quiz.js';
+import { practiceList, testList, gradeTest, graduationList } from '../dojo/quiz.js';
 import { cachedQuestion } from '../dojo/questions/index.js';
 import { lectureOf } from '../dojo/lectures/chapters.js';
 import { createClickGate } from './click-gate.js';
@@ -48,7 +48,9 @@ export function createDojoUI({ root, src, store, onClose = () => {}, onSaved = (
     gate.arm(performance.now());
   }
   // 道場の画面（選んだ章。省けば続きの章）
-  const toDojo = (selected = null) => show({ name: 'dojo', selected: selected ?? screen?.ch ?? resumeTarget(rec)?.chapter ?? null });
+  // 続きが卒業試験なら卒業試験の段（段階4-2）
+  const resumeSel = () => { const t = resumeTarget(rec); return t?.kind === 'grad' ? 'grad' : t?.chapter ?? null; };
+  const toDojo = (selected = null) => show({ name: 'dojo', selected: selected ?? screen?.ch ?? resumeSel() });
 
   function goStep(ch, kind) {
     const st = chapterState(rec, ch);
@@ -76,6 +78,23 @@ export function createDojoUI({ root, src, store, onClose = () => {}, onSaved = (
     show({ name: 'quiz', mode: 'test', ch, list, index: t.answers.length, correct: 0, chosen: null, q: questionAt(list, t.answers.length) });
   }
 
+  // 卒業試験（段階4-2）。途中があれば続きから
+  function goGrad() {
+    if (!rec.graduation.test) commit(A.startGraduation(rec, newSeed()));
+    const t = rec.graduation.test;
+    const list = graduationList(t.seed);
+    show({ name: 'quiz', mode: 'grad', ch: null, list, index: t.answers.length, correct: 0, chosen: null, q: questionAt(list, t.answers.length) });
+  }
+
+  function finishGrad(s) {
+    const questions = s.list.map(cachedQuestion);
+    const graded = gradeTest(questions, rec.graduation.test.answers, GRAD_PASS);
+    const before = rankOf(rec).label;
+    const r = A.finishGraduation(rec, graded, day());
+    commit(r.record);
+    show({ name: 'result', ch: null, selected: 'grad', view: { grad: true, chapterId: null, score: graded.score, passed: graded.passed, firstPass: r.firstPass, rankBefore: before, rankAfter: rankOf(rec).label, opened: null, wrong: wrongList(questions, graded.results) } });
+  }
+
   function startReview() {
     const list = dueToday(rec.reviews, day()).map(({ type, seed }) => ({ type, seed }));
     if (!list.length) return notify('今日の復習はありません。');
@@ -93,6 +112,11 @@ export function createDojoUI({ root, src, store, onClose = () => {}, onSaved = (
       commit(A.answerTest(rec, s.ch, i));
       if (s.index + 1 < s.list.length) return show({ ...s, index: s.index + 1, q: questionAt(s.list, s.index + 1) });
       return finishTest(s);
+    }
+    if (s.mode === 'grad') {
+      commit(A.answerGraduation(rec, i));
+      if (s.index + 1 < s.list.length) return show({ ...s, index: s.index + 1, q: questionAt(s.list, s.index + 1) });
+      return finishGrad(s);
     }
     show({ ...s, chosen: i, correct: s.correct + (ok ? 1 : 0) });
   }
@@ -138,8 +162,9 @@ export function createDojoUI({ root, src, store, onClose = () => {}, onSaved = (
     } else if (act === 'pick') show({ name: 'dojo', selected: b.dataset.ch });
     else if (act === 'step') goStep(buildDojoView(rec, screen.selected ?? null, day()).detail.id, b.dataset.step);
     else if (act === 'only') goTest(b.dataset.ch, { only: true });
+    else if (act === 'grad') goGrad();
     else if (act === 'review') startReview();
-    else if (act === 'dojo') toDojo(screen.ch ?? screen.selected ?? null);
+    else if (act === 'dojo') toDojo(screen.ch ?? screen.selected ?? (screen.mode === 'grad' ? 'grad' : null));
     else if (act === 'lec-prev') turn(-1);
     else if (act === 'lec-next') turn(1);
     else if (act === 'lec-done') { turn(0); goStep(screen.ch, 'practice'); }

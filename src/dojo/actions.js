@@ -1,8 +1,8 @@
 // 道場の記録を進める操作（段階4 設計書 5章）。どれも記録を書き換えず、新しい記録を返す（保存は画面の側がする）。
 // day：日の番号（coach/problems.js の dayOf）
 import { emptyChapter } from './record.js';
-import { PRACTICE_COUNT, TEST_COUNT, PLAYABLE, EXPERIENCES } from './chapters.js';
-import { chapterState, rankOf } from './progress.js';
+import { PRACTICE_COUNT, TEST_COUNT, PLAYABLE, EXPERIENCES, GRAD_COUNT } from './chapters.js';
+import { chapterState, rankOf, gradState } from './progress.js';
 import { addMistake, answerReview } from './reviews.js';
 
 function withChapter(rec, id, fn) {
@@ -82,4 +82,28 @@ export function finishTest(rec, id, graded, day) {
 // 復習で1問答えた
 export function answerReviewQuestion(rec, q, correct, day) {
   return { ...rec, reviews: answerReview(rec.reviews, q, correct, day), resume: { kind: 'review', chapter: null } };
+}
+
+// 卒業試験（段階4-2。ホールデム道場と同じ）：始める・1問答える・終える。途中があっても新しい種で最初から
+export function startGraduation(rec, seed) {
+  if (!gradState(rec).open) throw new Error('卒業試験はまだ開いていない');
+  return { ...rec, graduation: { ...rec.graduation, test: { seed, answers: [] } }, resume: { kind: 'grad', chapter: null } };
+}
+
+export function answerGraduation(rec, choice) {
+  const cur = rec.graduation?.test;
+  if (!cur) throw new Error('卒業試験を始めていない');
+  if (cur.answers.length >= GRAD_COUNT) throw new Error('卒業試験はもう答え終えた');
+  return { ...rec, graduation: { ...rec.graduation, test: { ...cur, answers: [...cur.answers, choice] } } };
+}
+
+// graded：quiz.js の gradeTest の結果（合格は GRAD_PASS）。間違えた問題は章末試験と同じく復習へ。
+// 合格した日は最初の日のまま、最高点は下がらない。返す値：{ record, firstPass }
+export function finishGraduation(rec, graded, day) {
+  const g = rec.graduation;
+  if (!g?.test || g.test.answers.length !== GRAD_COUNT) throw new Error('卒業試験をまだ答え終えていない');
+  let reviews = rec.reviews;
+  for (const r of graded.results) if (!r.correct) reviews = addMistake(reviews, r, day);
+  const graduation = { test: null, best: Math.max(g.best ?? 0, graded.score), passedAt: g.passedAt ?? (graded.passed ? day : null) };
+  return { record: { ...rec, graduation, reviews, resume: null }, firstPass: graded.passed && g.passedAt == null };
 }

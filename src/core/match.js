@@ -8,6 +8,7 @@ import { CpuPlayer } from './cpu-player.js';
 import { HumanPlayer } from './human-player.js';
 import { createRecorder } from './recorder.js';
 import { heroine, styleOf } from './cast.js';
+import { finalPoints } from './final.js';
 
 export const GAME_TITLE = 'やっしーGAMES 麻雀道場';
 
@@ -38,31 +39,12 @@ export class DojoGame extends Majiang.Game {
   // 供託はトップに。ポイントは (点数 − 返し) ÷ 1,000 ＋ ウマ、トップは残り
   jieju() {
     const model = this._model;
-    const paiming = [];
+    const r = finalPoints({ defen: model.defen, qijia: model.qijia, lizhibang: model.lizhibang, uma: this._rule['順位点'], okaReturn: this._okaReturn });
+    for (let i = 0; i < 4; i++) model.defen[i] = r.defen[i];
     const defen = model.defen;
-    for (let i = 0; i < 4; i++) {
-      const id = (model.qijia + i) % 4;
-      for (let j = 0; j < 4; j++) {
-        if (j === paiming.length || defen[id] > defen[paiming[j]]) {
-          paiming.splice(j, 0, id);
-          break;
-        }
-      }
-    }
-    defen[paiming[0]] += model.lizhibang * 1000;
     this._paipu.defen = defen;
-    const rank = [0, 0, 0, 0];
-    for (let i = 0; i < 4; i++) rank[paiming[i]] = i + 1;
-    this._paipu.rank = rank;
-    const round = !this._rule['順位点'].find((p) => p.match(/\.\d$/));
-    const point = [0, 0, 0, 0];
-    for (let i = 1; i < 4; i++) {
-      const id = paiming[i];
-      point[id] = (defen[id] - this._okaReturn) / 1000 + +this._rule['順位点'][i];
-      if (round) point[id] = Math.round(point[id]);
-      point[paiming[0]] -= point[id];
-    }
-    this._paipu.point = point.map((p) => p.toFixed(round ? 0 : 1));
+    this._paipu.rank = r.rank;
+    this._paipu.point = r.point;
     const paipu = { jieju: this._paipu };
     const msg = [];
     for (let l = 0; l < 4; l++) msg[l] = JSON.parse(JSON.stringify(paipu));
