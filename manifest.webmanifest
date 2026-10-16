@@ -1,0 +1,33 @@
+{
+  "id": "/mahjong-dojo/",
+  "name": "やっしーGAMES 麻雀道場",
+  "short_name": "麻雀道場",
+  "description": "判断の質を磨く麻雀の練習ゲーム（お金は賭けません）",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e9dcc2",
+  "theme_color": "#3a2717",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

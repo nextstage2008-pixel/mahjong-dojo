@@ -1,0 +1,109 @@
+// やっしーGAMES 麻雀道場の service worker（scripts/build-dist.mjs が作る。手で直さない）
+'use strict';
+const BUILD = {"version":"1.0","commit":"8d624d8"};
+const VOICE_KEY = "746085c4ac";
+const APP_FILES = ["assets/CREDITS.md","assets/chars/chr_1_ojousama.webp","assets/chars/chr_1_ojousama_s.jpg","assets/chars/chr_2_onesan.webp","assets/chars/chr_2_onesan_s.jpg","assets/chars/chr_3_mystery.webp","assets/chars/chr_3_mystery_s.jpg","assets/chars/chr_4_gal.webp","assets/chars/chr_4_gal_s.jpg","assets/chars/chr_5_seitou.webp","assets/chars/chr_5_seitou_s.jpg","assets/chars/chr_6_queen.webp","assets/chars/chr_6_queen_s.jpg","assets/chars/chr_7_fairy.webp","assets/chars/chr_7_fairy_s.jpg","assets/icons/apple-touch-icon-180.png","assets/icons/icon-192.png","assets/icons/icon-512.png","assets/icons/icon-maskable-512.png","assets/sfx/bou1.mp3","assets/sfx/bou2.mp3","assets/sfx/bou3.mp3","assets/sfx/mix1.mp3","assets/sfx/put1.mp3","assets/sfx/put2.mp3","assets/sfx/put3.mp3","assets/sfx/put4.mp3","assets/table/table-otsu.webp","assets/tiles/Chun.svg","assets/tiles/Haku.svg","assets/tiles/Hatsu.svg","assets/tiles/Man1.svg","assets/tiles/Man2.svg","assets/tiles/Man3.svg","assets/tiles/Man4.svg","assets/tiles/Man5-Dora.svg","assets/tiles/Man5.svg","assets/tiles/Man6.svg","assets/tiles/Man7.svg","assets/tiles/Man8.svg","assets/tiles/Man9.svg","assets/tiles/Nan.svg","assets/tiles/Pei.svg","assets/tiles/Pin1.svg","assets/tiles/Pin2.svg","assets/tiles/Pin3.svg","assets/tiles/Pin4.svg","assets/tiles/Pin5-Dora.svg","assets/tiles/Pin5.svg","assets/tiles/Pin6.svg","assets/tiles/Pin7.svg","assets/tiles/Pin8.svg","assets/tiles/Pin9.svg","assets/tiles/Shaa.svg","assets/tiles/Sou1.svg","assets/tiles/Sou2.svg","assets/tiles/Sou3.svg","assets/tiles/Sou4.svg","assets/tiles/Sou5-Dora.svg","assets/tiles/Sou5.svg","assets/tiles/Sou6.svg","assets/tiles/Sou7.svg","assets/tiles/Sou8.svg","assets/tiles/Sou9.svg","assets/tiles/Ton.svg","assets/voice/manifest.json","index.html","manifest.webmanifest","src/coach/count.js","src/coach/danger.js","src/coach/explain.js","src/coach/facts.js","src/coach/grade.js","src/coach/problems.js","src/coach/read.js","src/coach/review.js","src/coach/runner.js","src/coach/scene.js","src/coach/session.js","src/coach/sim.js","src/coach/spot.js","src/coach/tendency.js","src/coach/worker.js","src/core/ai.js","src/core/cast.js","src/core/cpu-player.js","src/core/human-player.js","src/core/match.js","src/core/rebuild.js","src/core/recorder.js","src/core/rng.js","src/core/rule.js","src/core/samewall.js","src/core/shan.js","src/core/styles.js","src/dojo/actions.js","src/dojo/chapters.js","src/dojo/lectures/chapters.js","src/dojo/lectures/terms.js","src/dojo/progress.js","src/dojo/questions/ch1.js","src/dojo/questions/ch2.js","src/dojo/questions/ch3.js","src/dojo/questions/ch4.js","src/dojo/questions/index.js","src/dojo/questions/prologue.js","src/dojo/questions/util.js","src/dojo/quiz.js","src/dojo/record.js","src/dojo/reviews.js","src/main.js","src/pwa/pwa-client.js","src/pwa/register.js","src/pwa/sw-rules.js","src/ui/about-html.js","src/ui/actions.js","src/ui/anim.js","src/ui/audio.js","src/ui/build-info.js","src/ui/click-gate.js","src/ui/coach-html.js","src/ui/dojo-figures.js","src/ui/dojo-html.js","src/ui/dojo-ui.js","src/ui/keep-record.js","src/ui/problems-html.js","src/ui/problems-ui.js","src/ui/question.js","src/ui/read-sync.js","src/ui/result-html.js","src/ui/review-flow.js","src/ui/review-html.js","src/ui/review-ui.js","src/ui/screens-html.js","src/ui/storage.js","src/ui/styles.css","src/ui/table-html.js","src/ui/table-ui.js","src/ui/tile-art.js","src/ui/view-model.js","src/ui/voices.js","vendor/LICENSE-majiang-core.txt","vendor/majiang-core.js"];
+const VOICE_FILES = ["assets/voice/himari/chi_1.mp3","assets/voice/himari/chi_2.mp3","assets/voice/himari/dealin_1.mp3","assets/voice/himari/dealin_2.mp3","assets/voice/himari/dealin_3.mp3","assets/voice/himari/kan_1.mp3","assets/voice/himari/kan_2.mp3","assets/voice/himari/last_1.mp3","assets/voice/himari/last_2.mp3","assets/voice/himari/last_3.mp3","assets/voice/himari/noten_1.mp3","assets/voice/himari/noten_2.mp3","assets/voice/himari/pon_1.mp3","assets/voice/himari/pon_2.mp3","assets/voice/himari/riichi_1.mp3","assets/voice/himari/riichi_2.mp3","assets/voice/himari/riichi_3.mp3","assets/voice/himari/ron_1.mp3","assets/voice/himari/ron_2.mp3","assets/voice/himari/ron_3.mp3","assets/voice/himari/start_1.mp3","assets/voice/himari/start_2.mp3","assets/voice/himari/start_3.mp3","assets/voice/himari/tenpai_1.mp3","assets/voice/himari/tenpai_2.mp3","assets/voice/himari/top_1.mp3","assets/voice/himari/top_2.mp3","assets/voice/himari/top_3.mp3","assets/voice/himari/tsumo_1.mp3","assets/voice/himari/tsumo_2.mp3","assets/voice/himari/tsumo_3.mp3","assets/voice/himari/tsumoed_1.mp3","assets/voice/himari/tsumoed_2.mp3","assets/voice/himari/tsumoed_3.mp3","assets/voice/himari/win_1.mp3","assets/voice/himari/win_2.mp3","assets/voice/himari/win_3.mp3","assets/voice/male/aru/chi_1.mp3","assets/voice/male/aru/kan_1.mp3","assets/voice/male/aru/noten_1.mp3","assets/voice/male/aru/pon_1.mp3","assets/voice/male/aru/riichi_1.mp3","assets/voice/male/aru/riichi_2.mp3","assets/voice/male/aru/ron_1.mp3","assets/voice/male/aru/ron_2.mp3","assets/voice/male/aru/tenpai_1.mp3","assets/voice/male/aru/tsumo_1.mp3","assets/voice/male/aru/tsumo_2.mp3","assets/voice/male/kenzaki/chi_1.mp3","assets/voice/male/kenzaki/kan_1.mp3","assets/voice/male/kenzaki/noten_1.mp3","assets/voice/male/kenzaki/pon_1.mp3","assets/voice/male/kenzaki/riichi_1.mp3","assets/voice/male/kenzaki/riichi_2.mp3","assets/voice/male/kenzaki/ron_1.mp3","assets/voice/male/kenzaki/ron_2.mp3","assets/voice/male/kenzaki/tenpai_1.mp3","assets/voice/male/kenzaki/tsumo_1.mp3","assets/voice/male/kenzaki/tsumo_2.mp3","assets/voice/male/kigashima/chi_1.mp3","assets/voice/male/kigashima/kan_1.mp3","assets/voice/male/kigashima/noten_1.mp3","assets/voice/male/kigashima/pon_1.mp3","assets/voice/male/kigashima/riichi_1.mp3","assets/voice/male/kigashima/riichi_2.mp3","assets/voice/male/kigashima/ron_1.mp3","assets/voice/male/kigashima/ron_2.mp3","assets/voice/male/kigashima/tenpai_1.mp3","assets/voice/male/kigashima/tsumo_1.mp3","assets/voice/male/kigashima/tsumo_2.mp3","assets/voice/male/kurono/chi_1.mp3","assets/voice/male/kurono/kan_1.mp3","assets/voice/male/kurono/noten_1.mp3","assets/voice/male/kurono/pon_1.mp3","assets/voice/male/kurono/riichi_1.mp3","assets/voice/male/kurono/riichi_2.mp3","assets/voice/male/kurono/ron_1.mp3","assets/voice/male/kurono/ron_2.mp3","assets/voice/male/kurono/tenpai_1.mp3","assets/voice/male/kurono/tsumo_1.mp3","assets/voice/male/kurono/tsumo_2.mp3","assets/voice/male/kurosawa/chi_1.mp3","assets/voice/male/kurosawa/kan_1.mp3","assets/voice/male/kurosawa/noten_1.mp3","assets/voice/male/kurosawa/pon_1.mp3","assets/voice/male/kurosawa/riichi_1.mp3","assets/voice/male/kurosawa/riichi_2.mp3","assets/voice/male/kurosawa/ron_1.mp3","assets/voice/male/kurosawa/ron_2.mp3","assets/voice/male/kurosawa/tenpai_1.mp3","assets/voice/male/kurosawa/tsumo_1.mp3","assets/voice/male/kurosawa/tsumo_2.mp3","assets/voice/male/rito/chi_1.mp3","assets/voice/male/rito/kan_1.mp3","assets/voice/male/rito/noten_1.mp3","assets/voice/male/rito/pon_1.mp3","assets/voice/male/rito/riichi_1.mp3","assets/voice/male/rito/riichi_2.mp3","assets/voice/male/rito/ron_1.mp3","assets/voice/male/rito/ron_2.mp3","assets/voice/male/rito/tenpai_1.mp3","assets/voice/male/rito/tsumo_1.mp3","assets/voice/male/rito/tsumo_2.mp3","assets/voice/male/ritoS/chi_1.mp3","assets/voice/male/ritoS/kan_1.mp3","assets/voice/male/ritoS/noten_1.mp3","assets/voice/male/ritoS/pon_1.mp3","assets/voice/male/ritoS/riichi_1.mp3","assets/voice/male/ritoS/riichi_2.mp3","assets/voice/male/ritoS/ron_1.mp3","assets/voice/male/ritoS/ron_2.mp3","assets/voice/male/ritoS/tenpai_1.mp3","assets/voice/male/ritoS/tsumo_1.mp3","assets/voice/male/ritoS/tsumo_2.mp3","assets/voice/male/suzumatsu/chi_1.mp3","assets/voice/male/suzumatsu/kan_1.mp3","assets/voice/male/suzumatsu/noten_1.mp3","assets/voice/male/suzumatsu/pon_1.mp3","assets/voice/male/suzumatsu/riichi_1.mp3","assets/voice/male/suzumatsu/riichi_2.mp3","assets/voice/male/suzumatsu/ron_1.mp3","assets/voice/male/suzumatsu/ron_2.mp3","assets/voice/male/suzumatsu/tenpai_1.mp3","assets/voice/male/suzumatsu/tsumo_1.mp3","assets/voice/male/suzumatsu/tsumo_2.mp3","assets/voice/metan/chi_1.mp3","assets/voice/metan/chi_2.mp3","assets/voice/metan/dealin_1.mp3","assets/voice/metan/dealin_2.mp3","assets/voice/metan/dealin_3.mp3","assets/voice/metan/kan_1.mp3","assets/voice/metan/kan_2.mp3","assets/voice/metan/last_1.mp3","assets/voice/metan/last_2.mp3","assets/voice/metan/last_3.mp3","assets/voice/metan/noten_1.mp3","assets/voice/metan/noten_2.mp3","assets/voice/metan/pon_1.mp3","assets/voice/metan/pon_2.mp3","assets/voice/metan/riichi_1.mp3","assets/voice/metan/riichi_2.mp3","assets/voice/metan/riichi_3.mp3","assets/voice/metan/ron_1.mp3","assets/voice/metan/ron_2.mp3","assets/voice/metan/ron_3.mp3","assets/voice/metan/start_1.mp3","assets/voice/metan/start_2.mp3","assets/voice/metan/start_3.mp3","assets/voice/metan/tenpai_1.mp3","assets/voice/metan/tenpai_2.mp3","assets/voice/metan/top_1.mp3","assets/voice/metan/top_2.mp3","assets/voice/metan/top_3.mp3","assets/voice/metan/tsumo_1.mp3","assets/voice/metan/tsumo_2.mp3","assets/voice/metan/tsumo_3.mp3","assets/voice/metan/tsumoed_1.mp3","assets/voice/metan/tsumoed_2.mp3","assets/voice/metan/tsumoed_3.mp3","assets/voice/metan/win_1.mp3","assets/voice/metan/win_2.mp3","assets/voice/metan/win_3.mp3","assets/voice/ritsu/chi_1.mp3","assets/voice/ritsu/chi_2.mp3","assets/voice/ritsu/dealin_1.mp3","assets/voice/ritsu/dealin_2.mp3","assets/voice/ritsu/dealin_3.mp3","assets/voice/ritsu/kan_1.mp3","assets/voice/ritsu/kan_2.mp3","assets/voice/ritsu/last_1.mp3","assets/voice/ritsu/last_2.mp3","assets/voice/ritsu/last_3.mp3","assets/voice/ritsu/noten_1.mp3","assets/voice/ritsu/noten_2.mp3","assets/voice/ritsu/pon_1.mp3","assets/voice/ritsu/pon_2.mp3","assets/voice/ritsu/riichi_1.mp3","assets/voice/ritsu/riichi_2.mp3","assets/voice/ritsu/riichi_3.mp3","assets/voice/ritsu/ron_1.mp3","assets/voice/ritsu/ron_2.mp3","assets/voice/ritsu/ron_3.mp3","assets/voice/ritsu/start_1.mp3","assets/voice/ritsu/start_2.mp3","assets/voice/ritsu/start_3.mp3","assets/voice/ritsu/tenpai_1.mp3","assets/voice/ritsu/tenpai_2.mp3","assets/voice/ritsu/top_1.mp3","assets/voice/ritsu/top_2.mp3","assets/voice/ritsu/top_3.mp3","assets/voice/ritsu/tsumo_1.mp3","assets/voice/ritsu/tsumo_2.mp3","assets/voice/ritsu/tsumo_3.mp3","assets/voice/ritsu/tsumoed_1.mp3","assets/voice/ritsu/tsumoed_2.mp3","assets/voice/ritsu/tsumoed_3.mp3","assets/voice/ritsu/win_1.mp3","assets/voice/ritsu/win_2.mp3","assets/voice/ritsu/win_3.mp3","assets/voice/sora/chi_1.mp3","assets/voice/sora/chi_2.mp3","assets/voice/sora/dealin_1.mp3","assets/voice/sora/dealin_2.mp3","assets/voice/sora/dealin_3.mp3","assets/voice/sora/kan_1.mp3","assets/voice/sora/kan_2.mp3","assets/voice/sora/last_1.mp3","assets/voice/sora/last_2.mp3","assets/voice/sora/last_3.mp3","assets/voice/sora/noten_1.mp3","assets/voice/sora/noten_2.mp3","assets/voice/sora/pon_1.mp3","assets/voice/sora/pon_2.mp3","assets/voice/sora/riichi_1.mp3","assets/voice/sora/riichi_2.mp3","assets/voice/sora/riichi_3.mp3","assets/voice/sora/ron_1.mp3","assets/voice/sora/ron_2.mp3","assets/voice/sora/ron_3.mp3","assets/voice/sora/start_1.mp3","assets/voice/sora/start_2.mp3","assets/voice/sora/start_3.mp3","assets/voice/sora/tenpai_1.mp3","assets/voice/sora/tenpai_2.mp3","assets/voice/sora/top_1.mp3","assets/voice/sora/top_2.mp3","assets/voice/sora/top_3.mp3","assets/voice/sora/tsumo_1.mp3","assets/voice/sora/tsumo_2.mp3","assets/voice/sora/tsumo_3.mp3","assets/voice/sora/tsumoed_1.mp3","assets/voice/sora/tsumoed_2.mp3","assets/voice/sora/tsumoed_3.mp3","assets/voice/sora/win_1.mp3","assets/voice/sora/win_2.mp3","assets/voice/sora/win_3.mp3","assets/voice/tsumugi/chi_1.mp3","assets/voice/tsumugi/chi_2.mp3","assets/voice/tsumugi/dealin_1.mp3","assets/voice/tsumugi/dealin_2.mp3","assets/voice/tsumugi/dealin_3.mp3","assets/voice/tsumugi/kan_1.mp3","assets/voice/tsumugi/kan_2.mp3","assets/voice/tsumugi/last_1.mp3","assets/voice/tsumugi/last_2.mp3","assets/voice/tsumugi/last_3.mp3","assets/voice/tsumugi/noten_1.mp3","assets/voice/tsumugi/noten_2.mp3","assets/voice/tsumugi/pon_1.mp3","assets/voice/tsumugi/pon_2.mp3","assets/voice/tsumugi/riichi_1.mp3","assets/voice/tsumugi/riichi_2.mp3","assets/voice/tsumugi/riichi_3.mp3","assets/voice/tsumugi/ron_1.mp3","assets/voice/tsumugi/ron_2.mp3","assets/voice/tsumugi/ron_3.mp3","assets/voice/tsumugi/start_1.mp3","assets/voice/tsumugi/start_2.mp3","assets/voice/tsumugi/start_3.mp3","assets/voice/tsumugi/tenpai_1.mp3","assets/voice/tsumugi/tenpai_2.mp3","assets/voice/tsumugi/top_1.mp3","assets/voice/tsumugi/top_2.mp3","assets/voice/tsumugi/top_3.mp3","assets/voice/tsumugi/tsumo_1.mp3","assets/voice/tsumugi/tsumo_2.mp3","assets/voice/tsumugi/tsumo_3.mp3","assets/voice/tsumugi/tsumoed_1.mp3","assets/voice/tsumugi/tsumoed_2.mp3","assets/voice/tsumugi/tsumoed_3.mp3","assets/voice/tsumugi/win_1.mp3","assets/voice/tsumugi/win_2.mp3","assets/voice/tsumugi/win_3.mp3","assets/voice/zunda/chi_1.mp3","assets/voice/zunda/chi_2.mp3","assets/voice/zunda/dealin_1.mp3","assets/voice/zunda/dealin_2.mp3","assets/voice/zunda/dealin_3.mp3","assets/voice/zunda/kan_1.mp3","assets/voice/zunda/kan_2.mp3","assets/voice/zunda/last_1.mp3","assets/voice/zunda/last_2.mp3","assets/voice/zunda/last_3.mp3","assets/voice/zunda/noten_1.mp3","assets/voice/zunda/noten_2.mp3","assets/voice/zunda/pon_1.mp3","assets/voice/zunda/pon_2.mp3","assets/voice/zunda/riichi_1.mp3","assets/voice/zunda/riichi_2.mp3","assets/voice/zunda/riichi_3.mp3","assets/voice/zunda/ron_1.mp3","assets/voice/zunda/ron_2.mp3","assets/voice/zunda/ron_3.mp3","assets/voice/zunda/start_1.mp3","assets/voice/zunda/start_2.mp3","assets/voice/zunda/start_3.mp3","assets/voice/zunda/tenpai_1.mp3","assets/voice/zunda/tenpai_2.mp3","assets/voice/zunda/top_1.mp3","assets/voice/zunda/top_2.mp3","assets/voice/zunda/top_3.mp3","assets/voice/zunda/tsumo_1.mp3","assets/voice/zunda/tsumo_2.mp3","assets/voice/zunda/tsumo_3.mp3","assets/voice/zunda/tsumoed_1.mp3","assets/voice/zunda/tsumoed_2.mp3","assets/voice/zunda/tsumoed_3.mp3","assets/voice/zunda/win_1.mp3","assets/voice/zunda/win_2.mp3","assets/voice/zunda/win_3.mp3","assets/voice/zunko/chi_1.mp3","assets/voice/zunko/chi_2.mp3","assets/voice/zunko/dealin_1.mp3","assets/voice/zunko/dealin_2.mp3","assets/voice/zunko/dealin_3.mp3","assets/voice/zunko/kan_1.mp3","assets/voice/zunko/kan_2.mp3","assets/voice/zunko/last_1.mp3","assets/voice/zunko/last_2.mp3","assets/voice/zunko/last_3.mp3","assets/voice/zunko/noten_1.mp3","assets/voice/zunko/noten_2.mp3","assets/voice/zunko/pon_1.mp3","assets/voice/zunko/pon_2.mp3","assets/voice/zunko/riichi_1.mp3","assets/voice/zunko/riichi_2.mp3","assets/voice/zunko/riichi_3.mp3","assets/voice/zunko/ron_1.mp3","assets/voice/zunko/ron_2.mp3","assets/voice/zunko/ron_3.mp3","assets/voice/zunko/start_1.mp3","assets/voice/zunko/start_2.mp3","assets/voice/zunko/start_3.mp3","assets/voice/zunko/tenpai_1.mp3","assets/voice/zunko/tenpai_2.mp3","assets/voice/zunko/top_1.mp3","assets/voice/zunko/top_2.mp3","assets/voice/zunko/top_3.mp3","assets/voice/zunko/tsumo_1.mp3","assets/voice/zunko/tsumo_2.mp3","assets/voice/zunko/tsumo_3.mp3","assets/voice/zunko/tsumoed_1.mp3","assets/voice/zunko/tsumoed_2.mp3","assets/voice/zunko/tsumoed_3.mp3","assets/voice/zunko/win_1.mp3","assets/voice/zunko/win_2.mp3","assets/voice/zunko/win_3.mp3"];
+// service worker の決まりごと（設計書 段階5-2 第3-3節）。画面にも置き場にも触れない。
+// テストはこのまま読み込み、公開用のファイルを作る道具（scripts/lib/sw-build.mjs）は export を外して sw.js の中に写す。
+// そのため、ここには import を書かず、export const と export function だけを置く。
+
+// 置き場の名前は必ずこれで始める（同じ住所に出すホールデム道場の holdem-dojo- の置き場と分けるため。消すのも自分のものだけ）
+const CACHE_PREFIX = 'mahjong-dojo-';
+// 本体の置き場は版の印ごと、声の置き場は声の一覧の印ごと
+const appCacheName = (build) => `${CACHE_PREFIX}app-${build.version}-${build.commit}`;
+const voiceCacheName = (key) => `${CACHE_PREFIX}voice-${key}`;
+
+// 消してよい置き場：自分の置き場のうち、いまの置き場（keep）でないものだけ
+function staleCaches(names, keep) {
+  return names.filter((n) => n.startsWith(CACHE_PREFIX) && !keep.includes(n));
+}
+
+// 住所をどう返すか。scope：service worker の受け持つ住所（/ で終わる）、appFiles：本体のファイルの一覧（scope からの相対）
+// 返す値：{ kind: 'app'（本体）|'voice'（声）|'pass'（触らない）, path（scope からの相対・住所の根は index.html）}
+function routeOf(url, scope, appFiles) {
+  if (!url.startsWith(scope)) return { kind: 'pass', path: null };
+  const path = decodeURIComponent(url.slice(scope.length).split(/[?#]/)[0]) || 'index.html';
+  if (path.startsWith('assets/voice/') && path.endsWith('.mp3')) return { kind: 'voice', path };
+  if (appFiles.includes(path)) return { kind: 'app', path };
+  return { kind: 'pass', path };
+}
+
+// 声を裏で少しずつ取る：動き出して WARM_DELAY_MS たったら、まだ置き場にない声を WARM_BATCH 個ずつ、WARM_GAP_MS あけて取る。
+// 続けて WARM_MAX_FAILS 組とも全部失敗したら（電波がない）やめて、次に開いたときに続ける。
+// 頼むのは画面（1組ずつ。返事が来たら WARM_GAP_MS あけて次）。service worker は1回の頼みで1組だけ取って返事をする
+// （1回の仕事を短くする。長い仕事を抱えた古い版は、新しい版への切り替えを待たせ、ブラウザに打ち切られることもあるため）
+const WARM_DELAY_MS = 30000;
+const WARM_BATCH = 3;
+const WARM_GAP_MS = 1500;
+const WARM_MAX_FAILS = 3;
+const WARM_TIMEOUT_MS = 10000; // 1つの声を取るのを待つ長さ
+// 次に取る1組：まだ置き場にない声の先頭から batch 個
+const warmBatch = (voices, cached, batch = WARM_BATCH) => voices.filter((v) => !cached.has(v)).slice(0, batch);
+// 返事 { got（取れた数）, left（まだの数）} と、これまで続けて全部失敗した組の数から、次を頼むか。返す値：{ fails, next }
+function warmNext({ got, left }, fails) {
+  const f = got > 0 ? 0 : fails + 1;
+  return { fails: f, next: left > 0 && f < WARM_MAX_FAILS };
+}
+
+// service worker の本体（設計書 段階5-2 第3-3節）。このファイルだけでは動かない：
+// 公開用のファイルを作る道具が、頭に BUILD・VOICE_KEY・APP_FILES・VOICE_FILES と決まりごと（sw-rules.js）を足して dist/sw.js を作る。
+/* global BUILD, VOICE_KEY, APP_FILES, VOICE_FILES, appCacheName, voiceCacheName, staleCaches, routeOf, warmBatch, WARM_TIMEOUT_MS */
+const SCOPE = self.registration.scope;
+const APP_CACHE = appCacheName(BUILD);
+const VOICE_CACHE = voiceCacheName(VOICE_KEY);
+
+// はじめて開いたとき：本体を全部、GitHub Pages の10分の取り置きを通さずに取っておく。1つでも取れなければ install を失敗にする（前の版のまま使う）
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(APP_CACHE).then((c) => Promise.all(APP_FILES.map((f) => fetch(new Request(SCOPE + f, { cache: 'reload' }))
+    .then((r) => { if (!r.ok) throw new Error(`${r.status} ${f}`); return c.put(SCOPE + f, r); })))));
+});
+
+// 新しい版が動き出したとき：自分の古い置き場だけ消して、開いている画面を受け持つ
+self.addEventListener('activate', (e) => {
+  e.waitUntil(caches.keys()
+    .then((names) => Promise.all(staleCaches(names, [APP_CACHE, VOICE_CACHE]).map((n) => caches.delete(n))))
+    .then(() => self.clients.claim()));
+});
+
+// 声を取りに行くときに待つ長さ（1つ10秒まで。返事の来ない回線で待ち続けない。AbortSignal.timeout のないブラウザは決めない）
+const timed = () => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? { signal: AbortSignal.timeout(WARM_TIMEOUT_MS) } : {});
+
+self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
+  const r = routeOf(e.request.url, SCOPE, APP_FILES);
+  if (r.kind === 'app') {
+    e.respondWith(caches.open(APP_CACHE).then((c) => c.match(SCOPE + r.path)).then((hit) => hit || fetch(e.request)));
+  } else if (r.kind === 'voice') {
+    e.respondWith(caches.open(VOICE_CACHE).then(async (c) => {
+      const hit = await c.match(SCOPE + r.path);
+      if (hit) return hit;
+      const res = await fetch(e.request, timed());
+      if (res.ok) await c.put(SCOPE + r.path, res.clone());
+      return res;
+    }));
+  }
+});
+
+// 声を裏で少しずつ取る：画面に頼まれるたびに、まだの声を1組だけ取る。返す値：{ got（取れた数）, left（まだの数）}
+async function warmOnce() {
+  const c = await caches.open(VOICE_CACHE);
+  const have = new Set((await c.keys()).map((q) => q.url.slice(SCOPE.length)));
+  const rest = VOICE_FILES.filter((v) => !have.has(v)).length;
+  const done = await Promise.all(warmBatch(VOICE_FILES, have).map((f) => fetch(SCOPE + f, timed())
+    .then((res) => { if (!res.ok) throw new Error(String(res.status)); return c.put(SCOPE + f, res); })
+    .then(() => true, () => false)));
+  const got = done.filter(Boolean).length;
+  return { got, left: rest - got };
+}
+
+// 何度頼まれても、同時に取るのは1組だけ（同じ組の返事をみんなに返す）
+let warming = null;
+self.addEventListener('message', (e) => {
+  const type = e.data && e.data.type;
+  if (type === 'SKIP_WAITING') self.skipWaiting();
+  if (type === 'warm-voices') {
+    if (!warming) warming = warmOnce().finally(() => { warming = null; });
+    e.waitUntil(warming.then((r) => { if (e.source) e.source.postMessage({ type: 'warm-voices', ...r }); }, () => {}));
+  }
+});
