@@ -2,7 +2,7 @@
 // 「agent（自分の選ぶことを返す）」として渡す。動き・音・声が終わるまで返事を待たせて、進む速さを決める。
 import { tableView, tileName, revealOf, arrowFrom } from './view-model.js';
 import { feltHTML, topHTML, meHTML, callButtonHTML, esc, bottomBarHTML, readTagsHTML } from './table-html.js';
-import { buttonsFor, messageFor, allowedIndexes, discardOption, autoReply, waitingMessage, usedHandTiles, callVerdictPlace, callButtonsCompact, cutInSpec, FX_MS, handTouch } from './actions.js';
+import { buttonsFor, messageFor, allowedIndexes, discardOption, autoReply, riichiAutoDiscard, waitingMessage, usedHandTiles, callVerdictPlace, callButtonsCompact, cutInSpec, FX_MS, handTouch } from './actions.js';
 import { huleHTML, pingjuHTML, jiejuHTML, dealInLineHTML, damaLineHTML, damaLineFor } from './result-html.js';
 import { kindOf } from '../core/ai.js';
 import { readSyncPlan } from './read-sync.js';
@@ -38,6 +38,8 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
   if (levelBtn) levelBtn.addEventListener('click', () => { audio.unlock(); changeLevel(nextLevel(getSettings().coachLevel)); });
 
   const src = (c, v) => art.src(c, v);
+  // リーチの後に自動で切るまでの間（引いた牌を見せる）
+  const RIICHI_AUTO_MS = 650;
   const T = (ms) => ms * speed;
   let player = null; // 自分の Player（盤面は player.model）
   let replaying = false;
@@ -607,7 +609,19 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
       case 'otherZimo':
         await wait(T(320));
         return {};
-      case 'myZimo':
+      case 'myZimo': {
+        await sheetClosed();
+        // リーチの後は、上がれず・カンもできなければ引いた牌を見せてから自動で切る（2026-10-16 先生の希望）
+        const tsumogiri = riichiAutoDiscard(kind, info, !!player?.shoupai?.lizhi);
+        if (tsumogiri) {
+          await wait(T(RIICHI_AUTO_MS));
+          if (disposed) return {};
+          const z = meEl.querySelector('.ht.zimo img');
+          if (z) pendingSource = z.getBoundingClientRect();
+          return tsumogiri;
+        }
+        return askUser(kind, info);
+      }
       case 'myFulou':
         await sheetClosed();
         return askUser(kind, info);

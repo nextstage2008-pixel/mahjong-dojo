@@ -78,6 +78,16 @@ export function waitingMessage(view) {
 }
 
 // 自動で打つときの返事（画面の確かめ・通しの試験用）：上がれれば上がり、鳴かず、ツモ切り
+// リーチの後に自動で切る返事（2026-10-16 先生の希望）。リーチの後は切れる牌が引いた牌だけになるので、それを切る。
+// ツモで上がれるとき・カンできるときは人に聞く（null）。riichi：自分がリーチしているか
+export function riichiAutoDiscard(kind, info, riichi) {
+  if (kind !== 'myZimo' || !riichi) return null;
+  const c = info.choices || {};
+  if (c.hule || (c.gang && c.gang.length)) return null;
+  const d = c.dapai || [];
+  return d.length === 1 ? { dapai: d[0] } : null;
+}
+
 export function autoReply(kind, info) {
   const c = info.choices || {};
   if (kind === 'myZimo') {
