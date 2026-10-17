@@ -124,6 +124,46 @@
    "tenpai": 1,
    "tsumo": 2
   },
+  "fCool": {
+   "chi": 1,
+   "kan": 1,
+   "noten": 1,
+   "pon": 1,
+   "riichi": 2,
+   "ron": 2,
+   "tenpai": 1,
+   "tsumo": 2
+  },
+  "fKimono": {
+   "chi": 1,
+   "kan": 1,
+   "noten": 1,
+   "pon": 1,
+   "riichi": 2,
+   "ron": 2,
+   "tenpai": 1,
+   "tsumo": 2
+  },
+  "fMegane": {
+   "chi": 1,
+   "kan": 1,
+   "noten": 1,
+   "pon": 1,
+   "riichi": 2,
+   "ron": 2,
+   "tenpai": 1,
+   "tsumo": 2
+  },
+  "fSporty": {
+   "chi": 1,
+   "kan": 1,
+   "noten": 1,
+   "pon": 1,
+   "riichi": 2,
+   "ron": 2,
+   "tenpai": 1,
+   "tsumo": 2
+  },
   "kenzaki": {
    "chi": 1,
    "kan": 1,

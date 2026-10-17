@@ -1,30 +1,9 @@
-// 卓の画面の HTML（設計書 8章）。画面の大きさは縦持ちのスマホ 393×852（論理ピクセル）で固定し、
+// 卓の画面の HTML（設計書 8章）。画面の大きさは横 760×340（論理ピクセル。stage.js）で固定し、
 // 実際の画面にはこれを拡大・縮小して合わせる。座標は打ち合わせで決めた見本（明るめ A）のもの。
 // src(code, view) は牌の絵の URL を返す関数（画面では tile-art の loadTileArt、テストでは仮の関数）。
 import { TILE_VIEWS } from './tile-art.js';
-
-export const SCREEN = { w: 393, h: 852, felt: 564 };
-
-// 窓（幅 w・高さ h）に画面全体が収まる倍率。縦にも横にもはみ出さない
-export function fitScale(w, h) {
-  return Math.min(w / SCREEN.w, h / SCREEN.h);
-}
-
-// 卓のほかの段の高さ（上の帯52＋指南の帯89＋手牌103＋下の段44）と、卓を縮めてよい下限
-const OTHER_H = SCREEN.h - SCREEN.felt;
-const FELT_MIN = 0.7;
-
-// 画面の合わせ方（手直し 3章）：縦持ちは横幅いっぱいにし、縦の過不足は真ん中の卓（393×564）だけで受ける（0.7倍まで。
-// それでも足りなければ全体を縮める）。横長の窓は今のまま。返すもの：{ scale（全体の倍率）, height（画面の高さ）, feltScale（卓の倍率） }
-export function layoutFor(w, h) {
-  if (w >= h) return { scale: fitScale(w, h), height: SCREEN.h, feltScale: 1 };
-  const scale = w / SCREEN.w;
-  const height = h / scale;
-  const feltScale = Math.min(1, (height - OTHER_H) / SCREEN.felt);
-  if (feltScale >= FELT_MIN) return { scale, height, feltScale };
-  const minH = OTHER_H + FELT_MIN * SCREEN.felt;
-  return { scale: h / minH, height: minH, feltScale: FELT_MIN };
-}
+import { LAND, LAND_SIZES } from './stage.js';
+import { avatarSrc } from '../core/profile.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const fmt = (n) => n.toLocaleString('ja-JP');
@@ -61,59 +40,73 @@ export function riverHTML(src, tiles, rel, callLast = false) {
   return rows.map((r) => `<div class="r">${r.join('')}</div>`).join('');
 }
 
-// 河の置き場所：点数板に近い1列目から外へ伸びるよう、左上を軸に回す
-const RIVER_POS = {
-  0: 'left:130.8px;top:362.6px',
-  1: 'left:277.1px;top:347.3px;transform:rotate(-90deg)',
-  2: 'left:261.8px;top:200.9px;transform:rotate(180deg)',
-  3: 'left:115.4px;top:216.3px;transform:rotate(90deg)',
-};
-const STICK_POS = {
-  0: 'left:167px;top:350px;width:58px;height:6px',
-  1: 'left:265px;top:253px;width:6px;height:58px',
-  2: 'left:167px;top:207.5px;width:58px;height:6px',
-  3: 'left:121.5px;top:253px;width:6px;height:58px',
-};
-const BPLATE_POS = {
-  0: 'left:159.6px;top:336.5px',
-  1: 'left:220.5px;top:276.2px;transform:rotate(-90deg)',
-  2: 'left:159.6px;top:214.8px;transform:rotate(180deg)',
-  3: 'left:98.2px;top:276.2px;transform:rotate(90deg)',
-};
-const PLATE_POS = { 1: 'right:8px;top:40px', 2: 'left:8px;top:40px', 3: 'left:8px;bottom:22px' };
-
-// 相手の伏せた手と副露。対面は上の横一列、上家は左の縦一列、下家は右の縦一列。
-// 副露はその人から見て右側（対面＝こちらの左、上家＝こちらの下、下家＝こちらの上）に置く
-// reveal：上がった人の倒した手（手直し 7章。{ tiles, win }）。伏せた手の代わりに寝た牌で描く
-function opponentHandHTML(src, seat, reveal = null) {
-  const backs = [];
-  const n = seat.concealed;
-  const view = seat.rel === 2 ? 'back' : 'backSide';
-  const mirror = seat.rel === 1 ? 'mirror' : '';
-  const turn = { 1: -90, 2: 180, 3: 90 }[seat.rel];
-  if (reveal) {
-    for (const code of reveal.tiles) backs.push(tileHTML(src, code, 'flat', { scale: 0.62, turn }));
-    if (reveal.win) backs.push('<span class="gap"></span>' + tileHTML(src, reveal.win, 'flat', { scale: 0.62, turn, cls: 'win' }));
-  } else {
-    for (let i = 0; i < n; i++) backs.push(tileHTML(src, 'z1', view, { cls: mirror }));
-    if (seat.drawn) backs.push('<span class="gap"></span>' + tileHTML(src, 'z1', view, { cls: mirror + ' drawn' }));
-  }
-  const melds = seat.melds.map((m) => `<span class="meld">${m.map((t) => tileHTML(src, t.code, t.back ? (seat.rel === 2 ? 'back' : 'backSide') : t.side ? 'side' : 'flat', { scale: 0.62, turn: t.back ? 0 : turn })).join('')}</span>`).join('');
-  const parts = seat.rel === 3 ? [backs.join(''), melds] : [melds, backs.join('')];
-  return `<div class="opp opp${seat.rel}${reveal ? ' revealed' : ''}" data-opp="${seat.rel}">${parts.filter(Boolean).join('<span class="mgap"></span>')}</div>`;
+// 立体の卓（画面の作り直し 段1 作業2・設計書 5章）：一辺 size の卓を rotateX(tilt) で斜めに倒す。席ごとに卓の真ん中を軸に
+// rotate(-90°×席) した層（.seat）を重ね、その層の中では「手前の席」と同じ並べ方で描く（河は真ん中の台の左の縁から、
+// リーチ棒は台と河の間、相手の手は手前の縁に立てる）。角度と大きさは画像で詰めてよい（変えたら台帳に書く）
+export const FELT3D = { size: 330, tilt: 30 };
+export const FELT_PERSPECTIVE = 1500; // styles.css の .felt3d の perspective と同じ
+export const CENTER_SIZE = 76; // 真ん中の台の一辺
+const CENTER = CENTER_SIZE;
+export const RIVER_GAP = 4; // 真ん中の台と河の間
+// 横の画面で卓を置く高さ（styles.css の #stage.land .mj-feltbox の top。卓の真ん中はこの 140px 下）。
+// 自分の河の3段目まで手牌の帯の上に見えるよう決めた（最後のレビューの直し）
+export const LAND_FELT_TOP = 4;
+// 卓の上で真ん中から d（手前が正）の点が、画面で真ん中からどれだけ下に出るか（rotateX(tilt) と perspective の計算）
+export function feltProjectY(d) {
+  const t = (FELT3D.tilt * Math.PI) / 180;
+  return (d * Math.cos(t) * FELT_PERSPECTIVE) / (FELT_PERSPECTIVE - d * Math.sin(t));
 }
 
-function plateHTML(seat) {
+
+// 相手の手（席の層の中・手前の縁）。伏せた手は牌の裏を立てて並べ（.stand）、鳴いた面子は寝かせて右に置く。
+// reveal：上がった人の倒した手（手直し 7章。{ tiles, win }）。立てた裏の代わりに寝た牌で描く
+function opponentHandHTML(src, seat, reveal = null) {
+  const out = [];
+  if (reveal) {
+    const lay = reveal.tiles.map((code) => tileHTML(src, code, 'flat', { scale: 0.8 }));
+    if (reveal.win) lay.push('<span class="gap"></span>' + tileHTML(src, reveal.win, 'flat', { scale: 0.8, cls: 'win' }));
+    out.push(`<span class="lay">${lay.join('')}</span>`);
+  } else {
+    const backs = [];
+    for (let i = 0; i < seat.concealed; i++) backs.push(tileHTML(src, 'z1', 'back', { scale: 1.3 }));
+    if (seat.drawn) backs.push('<span class="gap"></span>' + tileHTML(src, 'z1', 'back', { scale: 1.3, cls: 'drawn' }));
+    out.push(`<span class="stand">${backs.join('')}</span>`);
+  }
+  const melds = seat.melds.map((m) => `<span class="meld">${m.map((t) => tileHTML(src, t.code, t.back ? 'back' : t.side ? 'side' : 'flat', { scale: 0.7 })).join('')}</span>`).join('');
+  if (melds) out.push(`<span class="omelds">${melds}</span>`);
+  return `<div class="opp opp${seat.rel}${reveal ? ' revealed' : ''}" data-opp="${seat.rel}">${out.join('')}</div>`;
+}
+
+// 席の層：河・リーチ棒・相手の手
+function seatHTML(src, s, { callFrom = null, reveal = null } = {}) {
+  const S = FELT3D.size;
+  const parts = [];
+  if (s.riichi) parts.push(`<div class="stick" data-stick="${s.rel}" style="left:${S / 2 - 29}px;top:${S / 2 + CENTER / 2 - 7}px;width:58px;height:5px"></div>`);
+  parts.push(`<div class="river" data-river-box="${s.rel}" style="left:${S / 2 - CENTER / 2}px;top:${S / 2 + CENTER / 2 + RIVER_GAP}px">${riverHTML(src, s.river, s.rel, s.rel === callFrom)}</div>`);
+  if (s.rel !== 0) parts.push(opponentHandHTML(src, s, reveal && reveal.rel === s.rel ? reveal : null));
+  return `<div class="seat" data-seat="${s.rel}" style="transform:rotate(${-90 * s.rel}deg)">${parts.join('')}</div>`;
+}
+
+// 真ん中の台：局・本場・供託・残りと、4つの縁に風と点数（その席の向き）
+function screenHTML(view) {
+  const plates = view.seats.map((s) => `<div class="bplate" style="transform:rotate(${-90 * s.rel}deg) translateY(${CENTER / 2 - 9}px)"><span class="${s.dealer ? 'oya' : ''}">${s.wind}</span>${fmt(s.score)}</div>`).join('');
+  return `<div class="screen" style="left:${(FELT3D.size - CENTER) / 2}px;top:${(FELT3D.size - CENTER) / 2}px;width:${CENTER}px;height:${CENTER}px"><b>${view.round}</b><span>${view.honba}本場・供託${view.kyoutaku}</span><span>残り ${view.remaining}</span>${plates}</div>`;
+}
+
+// 名札（相手と自分で同じ形）。置き場は CSS の .p0〜.p3（縦と横の画面で変える）。自分のアバターは段3で入る（今は名前の頭の字の丸）
+function plateHTML(seat, { name = null, avatar = null } = {}) {
   const cls = ['plate', 'p' + seat.rel, seat.turn ? 'turn' : ''].join(' ');
-  const avatar = seat.img ? `<img class="av" src="assets/chars/${seat.img}_s.jpg" alt="">` : '';
+  const nm = name ?? seat.name;
+  const avatarHTML = avatarSrc(avatar, true) ? `<img class="av" src="${avatarSrc(avatar, true)}" alt="">`
+    : seat.img ? `<img class="av" src="assets/chars/${seat.img}_s.jpg" alt="">`
+      : `<span class="av av-none">${esc(Array.from(String(nm))[0] || '')}</span>`;
   const riichi = seat.riichi ? '<span class="reach">リーチ</span>' : '';
-  return `<div class="${cls}" style="${PLATE_POS[seat.rel]}" data-plate="${seat.rel}">${avatar}<div><span class="nm">${esc(seat.name)}</span><span class="wd${seat.dealer ? ' oya' : ''}">${seat.wind}</span>${riichi}<br><span class="pts">${fmt(seat.score)}</span>${seat.style ? `<span class="sty">${esc(seat.style)}</span>` : ''}</div></div>`;
+  return `<div class="${cls}" data-plate="${seat.rel}">${avatarHTML}<div><span class="nm">${esc(nm)}</span><span class="wd${seat.dealer ? ' oya' : ''}">${seat.wind}</span>${riichi}<br><span class="pts">${fmt(seat.score)}</span>${seat.style ? `<span class="sty">${esc(seat.style)}</span>` : ''}</div></div>`;
 }
 
 // 読みの札（段階3-5 設計書 6.3）：警戒している相手の名札のそばに、聴牌の見込み・役・高さの1行と、当たりにくい牌の一言。
 // 置き場所は卓の木の縁（牌のない所）：対面と下家は名札の上、上家は名札の上（下の縁の内側）。名札の下は対面の副露の列に
 // かかるので避けた（画面の確かめで直した）。opponents：読みの相手（seat は局の席）。seats：tableView の seats
-const RTAG_POS = { 1: 'right:8px;top:2px', 2: 'left:8px;top:2px', 3: 'left:8px;bottom:70px' };
 export function readTagsHTML(opponents, seats) {
   return (opponents || []).map((o) => {
     const s = seats.find((x) => x.l === o.seat);
@@ -121,26 +114,31 @@ export function readTagsHTML(opponents, seats) {
     const pass = o.pass ? `<div class="rpass">${esc(o.pass)}</div>` : '';
     // ダマの気配の理由（段階3-6 設計書 7.5）：当たりにくい牌の行と同じ段。札用の短い言葉（tagWhy）
     const why = o.tagWhy ? `<div class="rpass">${esc(o.tagWhy)}</div>` : '';
-    return `<div class="rtag" data-rtag="${s.rel}" style="${RTAG_POS[s.rel]}"><div>${esc(o.label)}</div>${pass}${why}</div>`;
+    return `<div class="rtag" data-rtag="${s.rel}"><div>${esc(o.label)}</div>${pass}${why}</div>`;
   }).join('');
 }
 
-// 卓（フェルトの上のもの全部）。callFrom：鳴ける牌を出した席（自分から見た位置）。
-// reveal：上がった相手の倒した手（手直し 7章。{ rel, tiles, win }）。readTags：読みの札（段階3-5。readTagsHTML）
+// 立体の卓（卓の上のもの全部）。callFrom：鳴ける牌を出した席（自分から見た位置）。
+// reveal：上がった相手の倒した手（手直し 7章。{ rel, tiles, win }）。readTags：読みの札（段階3-5。readTagsHTML。卓の外の2Dに重ねる）
 export function feltHTML(view, src, { callFrom = null, reveal = null, readTags = '' } = {}) {
-  const out = [];
-  for (const s of view.seats) {
-    out.push(`<div class="bplate" style="${BPLATE_POS[s.rel]}"><span class="${s.dealer ? 'oya' : ''}">${s.wind}</span>${fmt(s.score)}</div>`);
-    if (s.riichi) out.push(`<div class="stick" data-stick="${s.rel}" style="${STICK_POS[s.rel]}"></div>`);
-    out.push(`<div class="river" data-river-box="${s.rel}" style="${RIVER_POS[s.rel]}">${riverHTML(src, s.river, s.rel, s.rel === callFrom)}</div>`);
-    if (s.rel !== 0) {
-      out.push(opponentHandHTML(src, s, reveal && reveal.rel === s.rel ? reveal : null));
-      out.push(plateHTML(s));
-    }
-  }
-  out.push(`<div class="screen"><b>${view.round}</b><span>${view.honba}本場・供託${view.kyoutaku}</span><span>残り ${view.remaining}</span></div>`);
-  if (readTags) out.push(readTags);
-  return out.join('');
+  const S = FELT3D.size;
+  const seats = view.seats.map((s) => seatHTML(src, s, { callFrom, reveal })).join('');
+  return `<div class="felt3d"><div class="felt" style="width:${S}px;height:${S}px;transform:rotateX(${FELT3D.tilt}deg)">${seats}${screenHTML(view)}</div></div>${readTags || ''}`;
+}
+
+// 4人の名札（2D。卓の外）。meName：自分の名前（段3で設定から。なければ「あなた」）。meAvatar：自分のアバターの絵の名前（段3）
+export function platesHTML(view, { meName = 'あなた', meAvatar = null } = {}) {
+  return view.seats.map((s) => (s.rel === 0 ? plateHTML(s, { name: meName || 'あなた', avatar: meAvatar }) : plateHTML(s))).join('');
+}
+
+// 横の対局の画面の手牌の倍率（1が LAND_SIZES.hand の幅）。手の牌 nTiles 枚（引いた牌を含む）と鳴き nMelds 組（牌は合わせて nMeldTiles 枚）が
+// 横幅（LAND.w − 20）に収まるよう下げる（画面の作り直し 段1 作業3）
+export function handScale(nTiles, nMelds = 0, nMeldTiles = nMelds * 3) {
+  const W = LAND_SIZES.hand;
+  const meldW = TILE_VIEWS.flat.w * 0.82 * (W / TILE_VIEWS.hand.w);
+  const gaps = 7 + nMelds * 7;
+  const need = nTiles * W + nMeldTiles * meldW;
+  return Math.min(1, (LAND.w - 20 - gaps) / need);
 }
 
 // 下の段。level：指南の量のボタン（指南のない対局なら ''）。practice：打ち直し（段階3-2）なら「打ち直しをやめる」だけ
@@ -159,8 +157,11 @@ export function topHTML(view, src) {
 // 自分の席（名前・点数・手牌・副露）。selected：浮かせている牌の位置（-1 はツモ牌）。
 // allowed：切れる牌の位置の集合（null なら全部）。lift：鳴くときに使う牌（種類ごとの枚数。印を付ける）
 // danger：手牌の危なさの印（段階2-2 設計書 5.2。牌の書き方 → 放銃率。全部の段・リーチを受けているときだけ渡す）
-export function meHTML(view, src, { selected = null, allowed = null, lift = null, danger = null } = {}) {
+// land：横の対局の画面（手牌を LAND_SIZES.hand の幅に。鳴きが多ければ handScale で下げる）
+export function meHTML(view, src, { selected = null, allowed = null, lift = null, danger = null, land = false } = {}) {
   const me = view.seats[0];
+  const nMeldTiles = view.me.melds.reduce((a, m) => a + m.length, 0);
+  const hs = land ? (LAND_SIZES.hand / TILE_VIEWS.hand.w) * handScale(view.me.tiles.length + (view.me.zimo ? 1 : 0), view.me.melds.length, nMeldTiles) : 1;
   const left = { ...(lift || {}) };
   // 危なさの印：現物・安全（1%未満・緑）・1〜5%（黄）・5%以上（赤）
   const mark = (code) => {
@@ -173,14 +174,14 @@ export function meHTML(view, src, { selected = null, allowed = null, lift = null
     const use = left[code] > 0 ? (left[code]--, ' use') : '';
     const m = mark(code);
     const cls = [selected === i ? 'up' : '', allowed && !allowed.has(i) ? 'no' : ''].join(' ') + use + m.cls;
-    return tileHTML(src, code, 'hand', { cls: 'ht ' + cls, attrs: `data-i="${i}" data-code="${code}"${m.attr}` });
+    return tileHTML(src, code, 'hand', { scale: hs, cls: 'ht ' + cls, attrs: `data-i="${i}" data-code="${code}"${m.attr}` });
   });
   if (view.me.zimo) {
     const m = mark(view.me.zimo);
     const cls = [selected === -1 ? 'up' : '', allowed && !allowed.has(-1) ? 'no' : ''].join(' ') + m.cls;
-    tiles.push('<span class="gap"></span>' + tileHTML(src, view.me.zimo, 'hand', { cls: 'ht zimo ' + cls, attrs: `data-i="-1" data-code="${view.me.zimo}"${m.attr}` }));
+    tiles.push('<span class="gap"></span>' + tileHTML(src, view.me.zimo, 'hand', { scale: hs, cls: 'ht zimo ' + cls, attrs: `data-i="-1" data-code="${view.me.zimo}"${m.attr}` }));
   }
-  const melds = view.me.melds.map((m) => `<span class="meld">${m.map((t) => tileHTML(src, t.code, t.back ? 'back' : t.side ? 'side' : 'flat', { scale: 0.82 })).join('')}</span>`).join('');
+  const melds = view.me.melds.map((m) => `<span class="meld">${m.map((t) => tileHTML(src, t.code, t.back ? 'back' : t.side ? 'side' : 'flat', { scale: 0.82 * hs })).join('')}</span>`).join('');
   const riichi = me.riichi ? '<span class="reach">リーチ</span>' : '';
   return `<div class="info"><span class="wd${me.dealer ? ' oya' : ''}">${me.wind}</span><span>あなた</span>${riichi}<span class="pts">${fmt(me.score)}</span></div><div class="hand" data-hand>${tiles.join('')}${melds ? '<span class="mgap"></span>' + melds : ''}</div>`;
 }

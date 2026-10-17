@@ -6,6 +6,7 @@
 | 麻雀の決まり（`../vendor/majiang-core.js`） | 電脳麻将 majiang-core | MIT（`../vendor/LICENSE-majiang-core.txt`） |
 | 卓の画像（`table/`） | Gemini で生成（2026-10-08） | — |
 | キャラの絵（`chars/`） | Gemini で生成（2026-10-08。同日、18〜22歳くらいの若い大人の女性として描き直し）。やっしーGAMES のオリジナル | — |
+| 自分のアバターの絵（`avatars/`） | Gemini で生成（2026-10-17）。大人の男性4人・女性4人。やっしーGAMES のオリジナル | — |
 | 効果音（`sfx/`） | Tスタ（https://tnosite.com/） | 商用可・クレジット任意。素材単体の販売と素材サイトへの登録は禁止 |
 | 声（`voice/`） | VOICEVOX で作成 | 使っているキャラを「VOICEVOX:名前」で1人ずつ表記する |
 | アイコン（`icons/`） | やっしーGAMES が作成（牌の絵柄は上の FluffyStuff） | — |
@@ -15,6 +16,8 @@
 対局相手（7人の声を5人のキャラで作った）：VOICEVOX:東北イタコ　VOICEVOX:WhiteCUL　VOICEVOX:冥鳴ひまり　VOICEVOX:雨晴はう　VOICEVOX:波音リツ
 
 自分の声：VOICEVOX:猫使アル　VOICEVOX:麒ヶ島宗麟　VOICEVOX:雀松朱司　VOICEVOX:黒沢冴白　VOICEVOX:玄野武宏　VOICEVOX:剣崎雌雄　VOICEVOX:離途
+
+自分の声（女性4種）は、大人の設定の2人の声を VOICEVOX のモーフィングで半分ずつ混ぜて作った（2026-10-17。4人ともモーフィングを「ALL」で許している）：明るい女性の声＝VOICEVOX:雨晴はう＋VOICEVOX:WhiteCUL　知的な女性の声＝VOICEVOX:冥鳴ひまり＋VOICEVOX:WhiteCUL　上品な女性の声・クールな女性の声＝VOICEVOX:波音リツ＋VOICEVOX:冥鳴ひまり
 
 ## ライセンスについて
 

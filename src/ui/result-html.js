@@ -85,9 +85,10 @@ export function damaLineFor(d, hule, myMenfeng) {
 }
 
 // 顔の札（手直し 7章）：結果の画面のいちばん上に、上がった人 ← 振り込んだ人。winner・from は { name, img }
-// （img が null なら顔の代わりに「あなた」の札）。from が null ならツモ
+// （src があれば自分のアバターの絵〔画面の作り直し 段3〕、img があれば相手の絵、どちらもなければ顔の代わりに「あなた」の札）。from が null ならツモ
 export function huleFacesHTML({ winner, from }) {
-  const face = (w, cls) => `<div class="face ${cls}">${w.img ? `<img src="assets/chars/${w.img}_s.jpg" alt="">` : '<span class="you">あなた</span>'}<b>${esc(w.name)}</b></div>`;
+  const pic = (w) => (w.src ? `<img src="${esc(w.src)}" alt="">` : w.img ? `<img src="assets/chars/${w.img}_s.jpg" alt="">` : '<span class="you">あなた</span>');
+  const face = (w, cls) => `<div class="face ${cls}">${pic(w)}<b>${esc(w.name)}</b></div>`;
   return `<div class="hule-who">${face(winner, 'win')}${from ? `<span class="arrow">←</span>${face(from, 'from')}` : '<span class="how">ツモ</span>'}</div>`;
 }
 
@@ -103,7 +104,8 @@ export function huleHTML(hule, names, src, { note = '', faces = null } = {}) {
   const hand = tiles.map(img).join('') + melds.map((m) => `<span class="rm">${m.map(img).join('')}</span>`).join('') + winTile;
   const yaku = hule.hupai.map((h) => `<li><span>${esc(h.name)}</span><b>${yakuLabel(h.fanshu)}</b></li>`).join('');
   const moves = hule.fenpei.map((d, l) => `<li><span>${esc(names[l])}</span><b class="${d > 0 ? 'plus' : d < 0 ? 'minus' : ''}">${signed(d)}</b></li>`).join('');
-  return `<div class="panel result">${faces ? huleFacesHTML(faces) : ''}<h2>${who}　${how}</h2><div class="rhand">${hand}</div><ul class="yaku">${yaku}</ul><p class="score">${scoreLabel(hule)}　<b>${fmt(hule.defen)}点</b></p><ul class="moves">${moves}</ul>${note}<button class="btn primary" data-next>次へ</button></div>`;
+  // 横の画面（画面の作り直し 段2）：左に顔・上がった人・手・役、右に点数・4人の増減・この局・次へ
+  return `<div class="panel result"><div class="r-left">${faces ? huleFacesHTML(faces) : ''}<h2>${who}　${how}</h2><div class="rhand">${hand}</div><ul class="yaku">${yaku}</ul></div><div class="r-right"><p class="score">${scoreLabel(hule)}　<b>${fmt(hule.defen)}点</b></p><ul class="moves">${moves}</ul>${note}<button class="btn primary" data-next>次へ</button></div></div>`;
 }
 
 // 流局の画面（荒牌平局ならテンパイ／ノーテンも）。note：「この局」の HTML（段階3-2）
@@ -122,5 +124,5 @@ export function pingjuHTML(pingju, names, { note = '' } = {}) {
 export function jiejuHTML(paipu, namesById, coach = null, { review = false } = {}) {
   const order = [0, 1, 2, 3].sort((a, b) => paipu.rank[a] - paipu.rank[b]);
   const rows = order.map((id) => `<li class="${id === 0 ? 'me' : ''}"><span class="rk">${paipu.rank[id]}位</span><span>${esc(namesById[id])}</span><b>${fmt(paipu.defen[id])}</b><i>${+paipu.point[id] > 0 ? '+' : ''}${paipu.point[id]}</i></li>`).join('');
-  return `<div class="panel result final"><h2>対局終了</h2><ul class="ranking">${rows}</ul>${coach ? coachStatsHTML(coach) : ''}${review ? '<button class="btn primary" data-review>感想戦をする</button>' : ''}<button class="btn ${review ? '' : 'primary'}" data-next>タイトルへ</button></div>`;
+  return `<div class="panel result final"><div class="r-left"><h2>対局終了</h2><ul class="ranking">${rows}</ul></div><div class="r-right">${coach ? coachStatsHTML(coach) : ''}${review ? '<button class="btn primary" data-review>感想戦をする</button>' : ''}<button class="btn ${review ? '' : 'primary'}" data-next>タイトルへ</button></div></div>`;
 }

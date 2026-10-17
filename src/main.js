@@ -5,11 +5,12 @@ import { loadTileArt } from './ui/tile-art.js';
 import { createAudio, bindUnlock } from './ui/audio.js';
 import { createVoiceBook } from './ui/voices.js';
 import { createStore } from './ui/storage.js';
-import { titleHTML, settingsHTML, noticeHTML, SAVE_FAILED, resetConfirmHTML, studyClearConfirmHTML } from './ui/screens-html.js';
+import { titleHTML, settingsHTML, noticeHTML, SAVE_FAILED, resetConfirmHTML, studyClearConfirmHTML, profileCardHTML } from './ui/screens-html.js';
+import { profileOf, voiceOfAvatar, profilePatch } from './core/profile.js';
 import { savePreset, deletePreset } from './ui/storage.js';
 import { normalizeRules, STANDARD_RULES } from './core/rule.js';
 import { createTableUI } from './ui/table-ui.js';
-import { layoutFor } from './ui/table-html.js';
+import { LAND, landLayout, isPortraitWindow } from './ui/stage.js';
 import { createMatch } from './core/match.js';
 import { pickCast } from './core/cast.js';
 import { freshSeed } from './core/rng.js';
@@ -43,17 +44,37 @@ const params = new URLSearchParams(location.search);
 const auto = params.get('auto') === '1';
 const speed = Math.max(0.05, Number(params.get('speed')) || 1);
 
-// 画面（幅393）を窓に合わせて拡大・縮小する。縦持ちは横幅いっぱいにし、縦の過不足は真ん中の卓の倍率で受ける（手直し 3章）
+// 画面（横 760×340）を、安全な余白（ノッチ）の内側に収めて真ん中に置き、拡大・縮小する。
+// 窓が縦長なら「スマホを横にしてください」の案内を出す（画面の作り直しの設計書 4章）
 let currentScale = 1;
+const insetProbe = document.createElement('div');
+insetProbe.style.cssText = 'position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+document.body.appendChild(insetProbe);
+const insets = () => {
+  const c = getComputedStyle(insetProbe);
+  const n = (v) => parseFloat(v) || 0;
+  return { top: n(c.paddingTop), right: n(c.paddingRight), bottom: n(c.paddingBottom), left: n(c.paddingLeft) };
+};
+const rotateHint = document.createElement('div');
+rotateHint.className = 'rotate-hint';
+rotateHint.innerHTML = '<div><b>📱↻</b><p>スマホを横にしてください</p></div>';
+rotateHint.hidden = true;
+document.body.appendChild(rotateHint);
 function fit() {
-  const l = layoutFor(window.innerWidth, window.innerHeight);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const l = landLayout(w, h, insets());
   currentScale = l.scale;
-  stage.style.height = `${l.height}px`;
-  stage.style.setProperty('--felt-k', String(l.feltScale));
-  stage.style.transform = `translate(-50%,-50%) scale(${currentScale})`;
+  stage.style.width = `${LAND.w}px`;
+  stage.style.height = `${LAND.h}px`;
+  stage.style.left = `${l.left}px`;
+  stage.style.top = `${l.top}px`;
+  stage.style.transform = `scale(${currentScale})`;
+  rotateHint.hidden = !isPortraitWindow(w, h);
 }
 fit();
 window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', fit);
 
 function storageArea() {
   try {
@@ -111,8 +132,10 @@ function showTitle() {
   if (howto) howto.addEventListener('click', () => showHowto(HOME_HOWTO));
   const inapp = stage.querySelector('[data-act="inapp-howto"]');
   if (inapp) inapp.addEventListener('click', () => showHowto(INAPP_HOWTO));
+  // 名前とアバターの札をまだ出していなければ、対局の前に1回だけ出す（画面の作り直し 段3。後で決めるでも出したことにする）
+  const withProfile = (fn) => (settings.profileAsked ? fn() : askProfile(stage, { first: true }, fn));
   // はじめから：途中の対局と、前の半荘（感想戦の記録）を消す
-  const fresh = () => { store.clearMatch(); store.clearLast(); startMatch(null); };
+  const fresh = () => withProfile(() => { store.clearMatch(); store.clearLast(); startMatch(null); });
   // 途中の対局があれば、押し間違いで消さないよう確かめる
   stage.querySelector('[data-act="new"]').addEventListener('click', () => {
     if (!store.loadMatch()) return fresh();
@@ -122,13 +145,52 @@ function showTitle() {
     layer.querySelector('[data-act="reset-no"]').addEventListener('click', () => layer.remove());
   });
   const resume = stage.querySelector('[data-act="resume"]');
-  if (resume) resume.addEventListener('click', () => startMatch(store.loadMatch()));
+  if (resume) resume.addEventListener('click', () => withProfile(() => startMatch(store.loadMatch())));
   stage.querySelector('[data-act="settings"]').addEventListener('click', () => showSettings(stage, false, showTitle));
   const reviewLast = stage.querySelector('[data-act="review-last"]');
   if (reviewLast) reviewLast.addEventListener('click', () => { const r = store.loadLast(); if (r) showReview(r); else showTitle(); });
   const problems = stage.querySelector('[data-act="problems"]');
   if (problems) problems.addEventListener('click', showProblems);
   stage.querySelector('[data-act="dojo"]').addEventListener('click', showDojo);
+}
+
+// 名前とアバターの札（画面の作り直し 段3）。host の上に重ねる。first：はじめての対局の前（「後で決める」）。
+// done：決めた・後で決めたのあと（設定から開いて「戻る」なら呼ばない）
+function askProfile(host, { first }, done) {
+  // 二重に開かない（キーボードの Enter で後ろのボタンをもう一度押せてしまうため）
+  if (host.querySelector('.profile-layer')) return;
+  host.insertAdjacentHTML('beforeend', profileCardHTML({ name: settings.playerName, avatar: settings.avatar, first }));
+  const layer = host.lastElementChild;
+  const before = settings.avatar;
+  let avatar = before;
+  layer.querySelectorAll('[data-av]').forEach((b) => b.addEventListener('click', () => {
+    avatar = b.dataset.av || null;
+    // 絵を選ぶと声も決まる：その人の声で「リーチ」を鳴らす（「なし」は鳴らさない）
+    if (avatar) { audio.unlock(); audio.play(voices.male(voiceOfAvatar(avatar), 'riichi')); }
+    layer.querySelectorAll('[data-av]').forEach((x) => {
+      x.classList.toggle('on', x === b);
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+  }));
+  const close = (patch) => {
+    if (patch) {
+      settings = { ...settings, ...patch };
+      store.saveSettings(settings);
+      warnIfSaveFailed();
+    }
+    layer.remove();
+  };
+  layer.querySelector('[data-pf="ok"]').addEventListener('click', () => {
+    // 絵を変えたときだけ、自分の声もその人の声にする（profilePatch）
+    close(profilePatch({ input: layer.querySelector('[data-pf-name]').value, avatar, before }));
+    done();
+  });
+  const later = layer.querySelector('[data-pf="later"]');
+  if (later) later.addEventListener('click', () => { close({ profileAsked: true }); done(); });
+  const cancel = layer.querySelector('[data-pf="cancel"]');
+  if (cancel) cancel.addEventListener('click', () => close(null));
+  // 開いたら名前の欄へ（後ろのボタンを選んだまま残さない）
+  layer.querySelector('[data-pf-name]').focus();
 }
 
 // やり方の札（iPhone の Safari のタブ：ホーム画面に追加／アプリの中のブラウザ：Safari・Chrome で開く）
@@ -163,6 +225,7 @@ function showProblems() {
     art,
     run: runner.run,
     store,
+    me: profileOf(settings),
     onClose: () => { runner.dispose(); showTitle(); },
     onSaved: warnIfSaveFailed,
   });
@@ -178,6 +241,7 @@ function showReview(record) {
     art,
     record,
     run: runner.run,
+    me: profileOf(settings),
     prevTask: record.task,
     onTask: (t) => { store.saveTask({ reason: t.reason }); warnIfSaveFailed(); },
     onClose: () => { runner.dispose(); showTitle(); },
@@ -304,6 +368,8 @@ function showSettings(host, inGame, onClose) {
       layer.querySelector('[data-dj="clear-yes"]').addEventListener('click', () => { store.clearDojo(); layer.remove(); notify('道場の記録を消しました。'); });
       layer.querySelector('[data-dj="clear-no"]').addEventListener('click', () => layer.remove());
     });
+    // 名前とアバター（画面の作り直し 段3）：決めたら設定の画面を描き直す
+    box.querySelector('[data-act="profile"]').addEventListener('click', () => askProfile(host, { first: false }, render));
     // このゲームについて（公開）
     box.querySelector('[data-act="about"]').addEventListener('click', () => {
       host.insertAdjacentHTML('beforeend', aboutHTML(BUILD));

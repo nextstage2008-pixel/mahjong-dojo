@@ -10,12 +10,12 @@ import { turningPoints, lossTotal, chooseTask, taskResult } from '../coach/revie
 // onTask(task)：今日の課題が決まったとき（保存する）。onClose()：閉じたとき。
 // onPractice({ at, startDefen }, done)：打ち直し（段階3-2）。その場面から局の終わりまで打たせ、done(増減) で結果を返す（なければボタンを出さない）
 // onAnswered({ at, ok })：選び直しを採点したとき（段階3-3。問題集の解いた記録に入れる）
-export function createReviewUI({ root, art, record, run, prevTask = null, onTask = () => {}, onClose = () => {}, onPractice = null, onAnswered = () => {} }) {
+export function createReviewUI({ root, art, record, run, me, prevTask = null, onTask = () => {}, onClose = () => {}, onPractice = null, onAnswered = () => {} }) {
   const src = (c, v) => art.src(c, v);
   const points = turningPoints(record.coach);
   const noticed = [];
   let disposed = false;
-  root.innerHTML = '<div class="mj-top"></div><div class="mj-feltbox"><div class="mj-felt"></div></div><div class="mj-band"><div class="cbox"></div><span class="msg"></span><span class="btns"></span></div><div class="mj-me"></div><div class="mj-bottom rv-bottom"></div><div class="mj-overlay"></div>';
+  root.innerHTML = '<div class="mj-top"></div><div class="mj-feltbox"><div class="mj-felt"></div></div><div class="mj-band"><div class="cbox"></div><span class="msg"></span></div><div class="mj-acts"><span class="btns"></span></div><div class="mj-me"></div><div class="mj-bottom rv-bottom"></div><div class="mj-overlay"></div>';
   const $ = (s) => root.querySelector(s);
   const top = $('.mj-top');
   const felt = $('.mj-felt');
@@ -24,7 +24,7 @@ export function createReviewUI({ root, art, record, run, prevTask = null, onTask
   const bar = $('.mj-bottom');
   const overlay = $('.mj-overlay');
   // 問い直し（段階3-3 で ui/question.js に切り出した）
-  const question = createQuestion({ root, els: { top, felt, band, meEl }, src, run });
+  const question = createQuestion({ root, els: { top, felt, band, meEl }, src, run, me });
 
   const close = () => {
     if (disposed) return;
@@ -35,7 +35,7 @@ export function createReviewUI({ root, art, record, run, prevTask = null, onTask
   const setBand = (html, buttons = '') => {
     band.querySelector('.cbox').innerHTML = html;
     band.classList.toggle('has-coach', !!html);
-    band.querySelector('.btns').innerHTML = buttons;
+    root.querySelector('.mj-acts .btns').innerHTML = buttons;
   };
   const showOverlay = (html) => {
     overlay.innerHTML = html;

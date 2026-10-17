@@ -109,7 +109,7 @@ export function lectureHTML(v, src) {
     : `<div class="dj-txt">${v.text.map((t) => `<p>${esc(t)}</p>`).join('')}</div>${v.key ? `<div class="dj-key"><strong>ここが大事</strong>${esc(v.key)}</div>` : ''}`;
   return `<div class="dj dj-lec">
   <div class="dj-bar"><button class="back" data-dj="dojo">◀ 道場</button><h4>講 義</h4><span class="dj-who">${esc(v.heading)}</span></div>
-  <div class="dj-page">${figureHTML(v.figure, src)}<h6>${v.page + 1} / ${v.count}</h6><h3>${esc(v.title)}</h3>${body}</div>
+  <div class="dj-page"><div class="dj-lfig">${figureHTML(v.figure, src)}</div><div class="dj-ltext"><h6>${v.page + 1} / ${v.count}</h6><h3>${esc(v.title)}</h3>${body}</div></div>
   <div class="dj-nav"><button class="btn" data-dj="lec-prev"${v.page === 0 ? ' disabled' : ''}>◀ 前へ</button><span class="dots">${dots}</span>
     ${v.last ? '<button class="btn primary" data-dj="lec-done">練習問題へ ▶</button>' : '<button class="btn primary" data-dj="lec-next">次へ ▶</button>'}</div>
 </div>`;
@@ -148,9 +148,9 @@ export function quizHTML(v, src) {
   const counter = exam(v.mode) ? '<span class="dj-cnt">ヒントも正誤も出ません</span>' : `<span class="dj-cnt">正解 ${v.correct}</span>`;
   return `<div class="dj dj-quiz">
   <div class="dj-bar"><button class="back" data-dj="dojo">◀ 道場</button><h4>${esc(MODE[v.mode])}</h4><span class="dj-who">${esc(head)}</span></div>
-  <div class="dj-q"><div class="dj-qhead"><span>${v.index + 1} / ${v.total}</span>${counter}</div>
-    ${figureHTML(q.figure, src)}<p class="dj-prompt">${esc(q.prompt)}</p>
-    <div class="dj-ops">${choices}</div>${fb}</div>
+  <div class="dj-q"><div class="dj-qleft"><div class="dj-qhead"><span>${v.index + 1} / ${v.total}</span>${counter}</div>
+    ${figureHTML(q.figure, src)}<p class="dj-prompt">${esc(q.prompt)}</p></div>
+    <div class="dj-qright"><div class="dj-ops">${choices}</div>${fb}</div></div>
 </div>`;
 }
 

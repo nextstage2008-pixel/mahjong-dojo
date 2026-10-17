@@ -4,7 +4,7 @@
 // 対局中と同じ数字になる）。
 import { rebuildAt } from '../core/rebuild.js';
 import { tableView, tileName } from './view-model.js';
-import { feltHTML, topHTML, meHTML, callButtonHTML, esc } from './table-html.js';
+import { feltHTML, platesHTML, topHTML, meHTML, callButtonHTML, esc } from './table-html.js';
 import { buttonsFor, allowedIndexes, discardOption } from './actions.js';
 import { reasonHTML, hintSheetHTML } from './coach-html.js';
 import { askBandHTML, verdictBandHTML, mineLine, reasonKindOf } from './review-html.js';
@@ -15,9 +15,11 @@ import { keyOf } from '../coach/count.js';
 import { isCorrect } from '../coach/grade.js';
 import { readOf, truthOf, reviewTruth } from '../coach/read.js';
 import { seatStyles } from '../core/cast.js';
+import { profileOf } from '../core/profile.js';
 
 // root：画面（ヒントの表を重ねる）。els：{ top, felt, band, meEl }。src(code, view)：牌の絵。run：試しを動かす（runner.run）
-export function createQuestion({ root, els, src, run }) {
+// me：自分の名前とアバター（画面の作り直し 段3。profileOf の形）
+export function createQuestion({ root, els, src, run, me = profileOf(null) }) {
   const { top, felt, band, meEl } = els;
   let token = 0; // 問いごとの番号（試しの途中で次の問いへ進んだら、前の答えを出さない）
   let disposed = false;
@@ -25,7 +27,8 @@ export function createQuestion({ root, els, src, run }) {
   const setBand = (html, buttons = '') => {
     band.querySelector('.cbox').innerHTML = html;
     band.classList.toggle('has-coach', !!html);
-    band.querySelector('.btns').innerHTML = buttons;
+    // 選び直しのボタンは手牌の右上（画面の作り直し 段2。対局の画面と同じ置き場）
+    root.querySelector('.mj-acts .btns').innerHTML = buttons;
   };
 
   // record：対局の記録（{ seed, cast, rules, log }）。entry：指南の記録の1件（at・kind・chosen など）。
@@ -46,7 +49,7 @@ export function createQuestion({ root, els, src, run }) {
     const player = r.player;
     const v = tableView(player.model, 0, record.cast);
     top.innerHTML = topHTML(v, src);
-    felt.innerHTML = feltHTML(v, src);
+    felt.innerHTML = feltHTML(v, src) + platesHTML(v, { meName: me.name, meAvatar: me.avatar });
     const isCall = r.kind === 'otherDapai';
     const opts = { matchSeed: record.seed, rule: player._rule, styles: seatStyles(player.model, record.cast) };
     const choices = r.info.choices || {};
@@ -96,7 +99,7 @@ export function createQuestion({ root, els, src, run }) {
         buttons = [{ label: riichi ? 'リーチをやめる' : 'リーチ', toggle: true }];
       }
       setBand(askHTML(entry), buttons.map((b, k) => `<button class="btn" data-b="${k}" aria-label="${esc(b.label)}">${callButtonHTML(b, src, { compact: buttons.length > 3 })}</button>`).join(''));
-      band.querySelectorAll('.btns button').forEach((el) => el.addEventListener('click', () => {
+      root.querySelectorAll('.mj-acts .btns button').forEach((el) => el.addEventListener('click', () => {
         const b = buttons[+el.dataset.b];
         if (b.toggle) {
           if (flow.phase !== 'ask') return;

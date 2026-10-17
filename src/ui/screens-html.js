@@ -1,10 +1,11 @@
 // 始めの画面と設定の画面の HTML。画面には触らない。
-import { HEROINES, MALE_VOICES, creditLines } from '../core/cast.js';
+import { HEROINES, MALE_VOICES, creditLines, vvNames } from '../core/cast.js';
 import { MATCH_TYPES, STANDARD_RULES, normalizeRules } from '../core/rule.js';
 import { PRESET_MAX, PRESET_NAME_MAX } from './storage.js';
 import { esc } from './table-html.js';
 import { versionText } from './build-info.js';
 import { HOME_NOTE, INAPP_NOTE } from './keep-record.js';
+import { AVATARS, NAME_MAX, avatarSrc, profileOf } from '../core/profile.js';
 
 // ルールの、標準と違う項目の言い方（対局の長さは本文で言うので入れない。段階2-3 設計書 3.3）
 export function rulesNote(rules) {
@@ -26,12 +27,17 @@ export function titleHTML({ canResume, rules = null, matchType = 'tonnan', canRe
   const note = rulesNote(r);
   // 知らせ・案内の1行があるときは詰める（iPhone の Safari のタブは縦が短い。最後のレビューの直し）
   const extra = update || safariTab || inApp;
+  // 横の画面（画面の作り直し 段2）：左に名前・顔・級・説明、右にボタン・知らせ・版の表示
   return `<div class="title${extra ? ' has-extra' : ''}">
+  <div class="t-left">
   <div class="brand">やっしーGAMES</div>
   <h1>麻雀道場</h1>
   <p class="sub">判断を磨く麻雀</p>
   ${dojo ? `<p class="dj-title-rank">道場 ${esc(dojo.label)}</p>` : ''}
   <div class="faces">${HEROINES.map((h) => `<img src="assets/chars/${h.img}_s.jpg" alt="">`).join('')}</div>
+  <p class="note">CPU 3人と${MATCH_TYPES[r.length].label}を打ちます${note ? `（${esc(note)}）` : ''}。途中で閉じても、次に開けば続きから打てます。</p>
+  </div>
+  <div class="t-right">
   <div class="menu">
     ${canResume ? '<button class="btn primary" data-act="resume">続きから</button>' : ''}
     <button class="btn ${canResume ? '' : 'primary'}" data-act="new">はじめから</button>
@@ -43,8 +49,8 @@ export function titleHTML({ canResume, rules = null, matchType = 'tonnan', canRe
   ${update ? '<button class="btn title-update" data-act="update">新しい版があります（押すと更新）</button>' : ''}
   ${safariTab ? `<button class="mini title-home" data-act="home-howto">${esc(HOME_NOTE)}</button>` : ''}
   ${inApp ? `<button class="mini title-home" data-act="inapp-howto">${esc(INAPP_NOTE)}</button>` : ''}
-  <p class="note">CPU 3人と${MATCH_TYPES[r.length].label}を打ちます${note ? `（${esc(note)}）` : ''}。途中で閉じても、次に開けば続きから打てます。</p>
   ${build ? `<p class="title-ver">${esc(versionText(build))}</p>` : ''}
+  </div>
 </div>`;
 }
 
@@ -72,13 +78,17 @@ function rulesHTML(rules, presets) {
 
 // 設定。inGame：対局中に開いたか（戻る先の文言が変わる）
 export function settingsHTML(settings, { inGame = false } = {}) {
-  const voices = [['none', '声なし', '掛け声を出さない'], ...MALE_VOICES.map((v) => [v.key, v.label, 'VOICEVOX:' + v.vv])];
+  const voices = [['none', '声なし', '掛け声を出さない'], ...MALE_VOICES.map((v) => [v.key, v.label, vvNames(v).map((n) => 'VOICEVOX:' + n).join('＋')])];
   const rows = voices.map(([k, label, sub]) => `<label class="vrow"><input type="radio" name="maleVoice" value="${k}" ${settings.maleVoice === k ? 'checked' : ''}><span class="vn">${esc(label)}<small>${esc(sub)}</small></span>${k === 'none' ? '' : `<button class="mini" data-sample="${k}">▶</button>`}</label>`).join('');
+  // 横の画面（画面の作り直し 段2）：左の列に対局中の見え方と音、右の列にルール・記録・このゲームについて
+  const me = profileOf(settings);
+  const meFace = me.avatar ? `<img class="pf-face" src="${avatarSrc(me.avatar, true)}" alt="">` : `<span class="pf-face pf-none">${esc(Array.from(me.name)[0])}</span>`;
   return `<div class="settings">
   <h2>設定</h2>
-  <h3>ルール</h3><p class="sub">はじめからの対局で使う。途中の対局は始めたときのルールのまま続く。東北戦は東場の次に北場を打つ（北海道で多い打ち方）</p>
-  ${rulesHTML(settings.rules, settings.presets || [])}
-  <h3>指南の量</h3><p class="sub">考えどころで出す指南。卓の左下のボタンでも切り替えられる</p>
+  <div class="s-col">
+  <h3>名前とアバター</h3><p class="sub">卓の名札・カットイン・結果の画面に出す名前と絵</p>
+  <div class="pf-row">${meFace}<b>${esc(me.name)}</b><button class="mini" data-act="profile">変える</button></div>
+  <h3>指南の量</h3><p class="sub">考えどころで出す指南。対局の画面の上の帯のボタンでも切り替えられる</p>
   ${seg('coachLevel', settings.coachLevel, [['all', '全部'], ['hint', 'ヒント'], ['none', 'なし']])}
   <h3>局ごとの振り返り</h3><p class="sub">局の結果の画面に、この局の判断と、同じ山をお手本が打った結果を出す</p>
   ${seg('handReview', settings.handReview === false ? 'off' : 'on', [['on', '出す'], ['off', '出さない']])}
@@ -92,14 +102,36 @@ export function settingsHTML(settings, { inGame = false } = {}) {
   ${seg('cutin', settings.cutin ? 'on' : 'off', [['on', '出す'], ['off', '出さない']])}
   <h3>マナーモード中の音</h3><p class="sub">iPhone はマナーモード中に音が出ません。鳴らすと、聞いている音楽は止まります</p>
   ${seg('silentPlay', settings.silentPlay ? 'on' : 'off', [['off', '鳴らさない'], ['on', '鳴らす']])}
+  </div>
+  <div class="s-col">
+  <h3>ルール</h3><p class="sub">はじめからの対局で使う。途中の対局は始めたときのルールのまま続く。東北戦は東場の次に北場を打つ（北海道で多い打ち方）</p>
+  ${rulesHTML(settings.rules, settings.presets || [])}
   <h3>問題集と成績</h3><p class="sub">溜まった問題・解いた記録・成績の推移を消す（設定と対局の途中は消えない）</p>
   <button class="mini" data-act="study-clear">問題集と成績を消す</button>
   <h3>道場</h3><p class="sub">次に道場を開くと、麻雀の経験を聞き直します（合格や途中は消えない）。記録を消すと、章の進み具合・級・今日の復習が消えます</p>
   <div class="row"><button class="mini" data-act="dojo-exp">麻雀の経験を選び直す</button><button class="mini" data-act="dojo-clear">道場の記録を消す</button></div>
   <button class="mini" data-act="about">このゲームについて</button>
   <div class="credit">声：${creditLines(settings.maleVoice).map(esc).join('／')}<br>効果音：Tスタ<br>牌の絵：FluffyStuff/riichi-mahjong-tiles（CC0）<br>麻雀の決まり：電脳麻将 majiang-core（MIT）</div>
-  <button class="btn primary" data-act="close">${inGame ? '対局に戻る' : '戻る'}</button>
+  </div>
+  <button class="btn primary s-close" data-act="close">${inGame ? '対局に戻る' : '戻る'}</button>
 </div>`;
+}
+
+// 名前とアバターの札（画面の作り直し 段3）。first：はじめての対局の前（「後で決める」）か、設定から（「戻る」）か。
+// 左に名前の欄と決めるボタン、右に絵の8人と「なし」。選んでいる絵に aria-pressed="true"
+export function profileCardHTML({ name = '', avatar = null, first = false } = {}) {
+  const pick = (key, inner, label) => `<button class="pf-av${(avatar || '') === key ? ' on' : ''}" data-av="${key}" aria-pressed="${(avatar || '') === key}" aria-label="${esc(label)}">${inner}<small>${esc(label)}</small></button>`;
+  const faces = AVATARS.map((a) => pick(a.key, `<img src="${avatarSrc(a.key, true)}" alt="">`, a.label)).join('') + pick('', '<span class="pf-none">なし</span>', '絵なし');
+  return `<div class="profile-layer"><div class="panel profile" role="dialog" aria-modal="true">
+  <div class="pf-left">
+  <h2>名前とアバター</h2>
+  <p class="sub">卓の名札・カットイン・結果の画面に出します。名前は${NAME_MAX}文字まで（空なら「あなた」）。あとで設定から変えられます</p>
+  <input type="text" data-pf-name maxlength="${NAME_MAX}" placeholder="あなた" aria-label="名前" value="${esc(name)}">
+  <button class="btn primary" data-pf="ok">決める</button>
+  ${first ? '<button class="btn" data-pf="later">後で決める</button>' : '<button class="btn" data-pf="cancel">戻る</button>'}
+  </div>
+  <div class="pf-right">${faces}</div>
+</div></div>`;
 }
 
 // 保存できなかったときの文（一度だけ出す）

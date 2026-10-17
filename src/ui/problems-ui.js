@@ -45,7 +45,7 @@ function trendOf(history) {
 
 // root：画面（問題集の画面と、解く画面の卓をここに描く）。store：保存（loadStudy・saveStudy）。run：試し。
 // onClose()：閉じたとき。onSaved()：保存したとき（失敗の知らせを出すため）
-export function createProblemsUI({ root, art, run, store, now = () => new Date(), onClose = () => {}, onSaved = () => {} }) {
+export function createProblemsUI({ root, art, run, store, me, now = () => new Date(), onClose = () => {}, onSaved = () => {} }) {
   const src = (c, v) => art.src(c, v);
   let question = null;
   let disposed = false;
@@ -83,12 +83,12 @@ export function createProblemsUI({ root, art, run, store, now = () => new Date()
   function start(list) {
     if (!list.length) return home();
     stop();
-    root.innerHTML = '<div class="mj rv pb"><div class="mj-top"></div><div class="mj-feltbox"><div class="mj-felt"></div></div><div class="mj-band"><div class="cbox"></div><span class="msg"></span><span class="btns"></span></div><div class="mj-me"></div><div class="mj-bottom rv-bottom"></div><div class="mj-overlay"></div></div>';
+    root.innerHTML = '<div class="mj rv pb"><div class="mj-top"></div><div class="mj-feltbox"><div class="mj-felt"></div></div><div class="mj-band"><div class="cbox"></div><span class="msg"></span></div><div class="mj-acts"><span class="btns"></span></div><div class="mj-me"></div><div class="mj-bottom rv-bottom"></div><div class="mj-overlay"></div></div>';
     const mj = root.querySelector('.mj');
     const $ = (s) => mj.querySelector(s);
     const bar = $('.mj-bottom');
     const overlay = $('.mj-overlay');
-    question = createQuestion({ root: mj, els: { top: $('.mj-top'), felt: $('.mj-felt'), band: $('.mj-band'), meEl: $('.mj-me') }, src, run });
+    question = createQuestion({ root: mj, els: { top: $('.mj-top'), felt: $('.mj-felt'), band: $('.mj-band'), meEl: $('.mj-me') }, src, run, me });
     const archive = store.loadStudy().archive;
     const results = [];
     let i = -1;

@@ -83,12 +83,22 @@ export function slideIn(el, duration = 170, elapsed = 0) {
   return el.animate([{ transform: 'translate(18px,-26px)', opacity: 0 }, { transform: 'translate(0,0)', opacity: 1 }], opts).finished.catch(() => {});
 }
 
-// カットイン：キャラの絵（なければ文字だけ）が斜めに差し込み、掛け声と一緒に消える（0.6秒ほど）
-export function cutIn(root, { img, word, name, duration = 650 }) {
+const escText = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+// カットインの中身（画面の作り直し 段1 作業4）：横いっぱいの帯（黒と金の縁）・光の筋・掛け声・名前・絵。
+// img：相手のキャラの絵の名前（assets/chars/<img>.webp）。imgSrc：自分のアバターの絵の住所（段3）。どちらもなければ「あなた」の印
+export function cutInHTML({ img = null, imgSrc = null, word, name = '' }) {
+  const src = imgSrc || (img ? `assets/chars/${img}.webp` : null);
+  const pic = src ? `<img src="${escText(src)}" alt="">` : '<span class="you">あなた</span>';
+  return `<div class="band"></div><div class="streak"></div>${pic}<div class="word">${escText(word)}</div>${name ? `<div class="who">${escText(name)}</div>` : ''}`;
+}
+
+// カットイン：絵が差し込み、掛け声と一緒に消える（長さは duration）
+export function cutIn(root, { img, imgSrc = null, word, name, duration = 650 }) {
   const el = document.createElement('div');
   el.className = 'cutin';
   el.style.setProperty('--cut-ms', `${duration}ms`);
-  el.innerHTML = `<div class="band"></div>${img ? `<img src="assets/chars/${img}.webp" alt="">` : ''}<div class="word">${word}</div>${name ? `<div class="who">${name}</div>` : ''}`;
+  el.innerHTML = cutInHTML({ img, imgSrc, word, name });
   root.appendChild(el);
   return wait(duration).then(() => el.remove());
 }

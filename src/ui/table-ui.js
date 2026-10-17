@@ -1,8 +1,8 @@
 // 卓の画面をつなぐところ。部品の Player に「view（盤面が変わった知らせを受ける）」と
 // 「agent（自分の選ぶことを返す）」として渡す。動き・音・声が終わるまで返事を待たせて、進む速さを決める。
 import { tableView, tileName, revealOf, arrowFrom } from './view-model.js';
-import { feltHTML, topHTML, meHTML, callButtonHTML, esc, bottomBarHTML, readTagsHTML } from './table-html.js';
-import { buttonsFor, messageFor, allowedIndexes, discardOption, autoReply, riichiAutoDiscard, waitingMessage, usedHandTiles, callVerdictPlace, callButtonsCompact, cutInSpec, FX_MS, handTouch } from './actions.js';
+import { feltHTML, platesHTML, topHTML, meHTML, callButtonHTML, esc, bottomBarHTML, readTagsHTML } from './table-html.js';
+import { buttonsFor, messageFor, allowedIndexes, discardOption, autoReply, riichiAutoDiscard, waitingMessage, usedHandTiles, callVerdictPlace, callButtonsCompact, cutInSpec, FX_MS, handTouch, traceTick } from './actions.js';
 import { huleHTML, pingjuHTML, jiejuHTML, dealInLineHTML, damaLineHTML, damaLineFor } from './result-html.js';
 import { kindOf } from '../core/ai.js';
 import { readSyncPlan } from './read-sync.js';
@@ -11,6 +11,7 @@ import { callOf, huleChatter, pingjuCalls, jiejuChatter, shouldChat } from './vo
 import { flyTile, handRects, flipHand, slideIn, cutIn, wait, toLocal, glowAt, dropStick, flash, arrowFx, flyCopy } from './anim.js';
 import { vibrate } from './audio.js';
 import { heroine, seatStyles } from '../core/cast.js';
+import { profileOf, avatarSrc } from '../core/profile.js';
 import { spotHTML, reasonHTML, pendingHTML, answerHTML, hintSheetHTML, levelButtonHTML, callVerdictHTML } from './coach-html.js';
 import { sceneOf, callSceneOf } from '../coach/scene.js';
 import { keyOf } from '../coach/count.js';
@@ -25,7 +26,7 @@ const RIVER_TURN = { 0: 0, 1: -90, 2: 180, 3: 90 };
 // practice：打ち直し（段階3-2。{ startDefen, onEnd(delta) }）。局の結果の画面の後に onEnd を呼んで止まる（指南・保存は呼ぶ側が付けない）
 export function createTableUI({ root, art, audio, voices, getSettings, cast, auto = false, speed = 1, scale = () => 1, onMenu = () => {}, coach = null, matchSeed = 0, setCoachLevel = () => {}, getPosition = () => null, getHandNote = () => null, practice = null }) {
   const level = coach ? levelButtonHTML(getSettings().coachLevel) : '';
-  root.innerHTML = `<div class="mj-top"></div><div class="mj-feltbox"><div class="mj-felt"></div></div><div class="mj-band"><div class="cbox"></div><span class="msg"></span><span class="btns"></span></div><div class="mj-me"></div>${bottomBarHTML({ level, practice: !!practice })}<div class="mj-fx"></div><div class="mj-overlay"></div>`;
+  root.innerHTML = `<div class="mj-top"></div><div class="mj-feltbox"><div class="mj-felt"></div></div><div class="mj-band"><div class="cbox"></div><span class="msg"></span></div><div class="mj-acts"><span class="btns"></span></div><div class="mj-me"></div>${bottomBarHTML({ level, practice: !!practice })}<div class="mj-fx"></div><div class="mj-overlay"></div>`;
   const $ = (sel) => root.querySelector(sel);
   const top = $('.mj-top');
   const felt = $('.mj-felt');
@@ -33,6 +34,20 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
   const meEl = $('.mj-me');
   const overlay = $('.mj-overlay');
   const fxEl = $('.mj-fx'); // 演出の層（手直し 6章・7章。描き直さない）
+  // 手牌をなぞる音（パソコンのマウスだけ・自分の番でなくても）：手牌の器で、別の牌に乗り移ったら鳴らす。器は描き直さないので1回だけ付ける。
+  // 自分の切る番には、なぞった牌（切れる牌だけ）を一段上げる（hov。1回のクリックで切る。先生 2026-10-17）
+  let traceLast = null;
+  let traceAt = -Infinity;
+  meEl.addEventListener('pointerover', (e) => {
+    const t = e.target.closest('.ht');
+    const tile = t ? t.dataset.i : null;
+    const now = performance.now();
+    const lift = e.pointerType === 'mouse' && t && !t.classList.contains('no') && !!discardOptions();
+    meEl.querySelectorAll('.ht').forEach((x) => x.classList.toggle('hov', lift && x === t));
+    if (traceTick({ pointerType: e.pointerType, tile, last: traceLast, now, lastAt: traceAt })) { traceAt = now; audio.trace(); }
+    if (tile !== null) traceLast = tile;
+  });
+  meEl.addEventListener('pointerleave', () => { traceLast = null; meEl.querySelectorAll('.ht.hov').forEach((x) => x.classList.remove('hov')); });
   root.querySelectorAll('[data-menu]').forEach((b) => b.addEventListener('click', () => onMenu(b.dataset.menu)));
   const levelBtn = root.querySelector('[data-coach="level"]');
   if (levelBtn) levelBtn.addEventListener('click', () => { audio.unlock(); changeLevel(nextLevel(getSettings().coachLevel)); });
@@ -65,6 +80,8 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
   const relOf = (l) => (l - mySeat() + 4) % 4;
   const idOf = (l) => player.model.player_id[l];
   const view = () => tableView(player.model, 0, cast);
+  // 自分の名前とアバター（画面の作り直し 段3。設定から。名前が空なら「あなた」）
+  const me = () => profileOf(getSettings());
   const ready = () => player && player.model.shan;
 
   // 鳴ける場面：出した人の席（自分から見た位置）。卓ではその人の河の最後の牌を光らせる
@@ -92,7 +109,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
     const tags = readTagsOf(v);
     const plan = readSyncPlan({ tags: tagsShown, marks: marksShown }, { tags, marks: marksNow() });
     if (plan.felt) {
-      felt.innerHTML = feltHTML(v, src, { callFrom: callRel(), reveal, readTags: tags });
+      felt.innerHTML = feltHTML(v, src, { callFrom: callRel(), reveal, readTags: tags }) + platesHTML(v, { meName: me().name, meAvatar: me().avatar });
       tagsShown = tags;
     }
     if (plan.hand) renderMe(v);
@@ -103,7 +120,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
     const v = view();
     top.innerHTML = topHTML(v, src);
     tagsShown = readTagsOf(v);
-    felt.innerHTML = feltHTML(v, src, { callFrom: callRel(), reveal, readTags: tagsShown });
+    felt.innerHTML = feltHTML(v, src, { callFrom: callRel(), reveal, readTags: tagsShown }) + platesHTML(v, { meName: me().name, meAvatar: me().avatar });
     renderMe(v);
     renderBand();
   }
@@ -120,7 +137,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
     // 手牌の印（段階2-2 設計書 5.2・段階3-5 設計書 6.2）：読みを出す番は、警戒している相手みんなへのロンされる確率
     const danger = marksNow();
     marksShown = danger;
-    meEl.innerHTML = meHTML(v, src, { selected: ask ? ask.selected : null, allowed, lift, danger });
+    meEl.innerHTML = meHTML(v, src, { selected: ask ? ask.selected : null, allowed, lift, danger, land: true });
     if (opts) bindHand(allowed, v);
     // 引いた牌の滑り込みの途中なら、描き直した牌でも続ける
     if (zimoSlide !== null) {
@@ -143,7 +160,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
         el.setPointerCapture(pid);
         sx = e.clientX; sy = e.clientY; st = performance.now(); moved = false; fired = false;
         if (!ask) return;
-        if (handTouch('down', { selected: ask.selected === i }) === 'discard') {
+        if (handTouch('down', { selected: ask.selected === i, mouse: e.pointerType === 'mouse' }) === 'discard') {
           fired = true;
           return discardAt(i, el, v);
         }
@@ -294,7 +311,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
   }
 
   // ヒントの表の相手の札に名前を付ける（段階3-5）
-  const namedRead = (read) => (read ? { opponents: read.opponents.map((o) => ({ ...o, name: idOf(o.seat) === 0 ? 'あなた' : heroine(cast[idOf(o.seat) - 1]).name })) } : null);
+  const namedRead = (read) => (read ? { opponents: read.opponents.map((o) => ({ ...o, name: idOf(o.seat) === 0 ? me().name : heroine(cast[idOf(o.seat) - 1]).name })) } : null);
 
   // ヒントの表（設計書 5.4）。切る前は全部の表（この判断に「ヒントを見た」印）、切った後は答え合わせの詳しい版
   function openSheet() {
@@ -348,7 +365,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
     }
     renderBand();
     // 鳴くかどうかを答えたら、光らせた牌と浮かせた手牌を元に戻す
-    if (a && a.kind === 'otherDapai' && ready()) { tagsShown = ''; felt.innerHTML = feltHTML(view(), src); renderMe(); }
+    if (a && a.kind === 'otherDapai' && ready()) { tagsShown = ''; felt.innerHTML = feltHTML(view(), src) + platesHTML(view(), { meName: me().name, meAvatar: me().avatar }); renderMe(); }
     // 切ったら読みの札を消す（段階3-5）
     else if (tagsShown) syncRead();
     meEl.querySelectorAll('.ht').forEach((x) => x.classList.remove('up'));
@@ -381,7 +398,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
 
   function renderBand() {
     const msg = band.querySelector('.msg');
-    const btns = band.querySelector('.btns');
+    const btns = root.querySelector('.mj-acts .btns');
     band.classList.remove('has-btns');
     if (!ask) {
       msg.textContent = ready() ? waitingMessage(view()) : '';
@@ -453,7 +470,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
     if (!getSettings().cutin || !spec) return Promise.resolve(false);
     const id = idOf(l);
     const h = id === 0 ? null : heroine(cast[id - 1]);
-    return cutIn(root, { img: h ? h.img : null, word: spec.word, name: h ? h.name : 'あなた', duration: T(spec.ms) }).then(() => true);
+    return cutIn(root, { img: h ? h.img : null, imgSrc: h ? null : avatarSrc(me().avatar), word: spec.word, name: h ? h.name : me().name, duration: T(spec.ms) }).then(() => true);
   }
 
   // 相手の打牌の飛び始め：ツモってきた牌（なければ伏せた手の真ん中）
@@ -671,8 +688,8 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
 
   // 上がり・流局・終局の画面。quick：自動で打つときは待たずに閉じる
   async function showResult(kind, info, quick) {
-    const names = [0, 1, 2, 3].map((l) => (idOf(l) === 0 ? 'あなた' : heroine(cast[idOf(l) - 1]).name));
-    const namesById = ['あなた', ...cast.map((k) => heroine(k).name)];
+    const names = [0, 1, 2, 3].map((l) => (idOf(l) === 0 ? me().name : heroine(cast[idOf(l) - 1]).name));
+    const namesById = [me().name, ...cast.map((k) => heroine(k).name)];
     // この局のあなたの増減と「この局」の2行（段階3-2）。打ち直しは局の始めの点数を呼ぶ側から受け取る
     let note = '';
     let mine = null;
@@ -701,8 +718,8 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
       const dama = same ? damaLineFor(d, info.hule, player._menfeng) : null;
       if (dama) note += damaLineHTML({ name: names[info.hule.l], signs: dama.signs, unused: dama.unused });
     }
-    // 顔の札（手直し 7章）：上がった人 ← 振り込んだ人（自分は顔の代わりに「あなた」）
-    const face = (l) => (idOf(l) === 0 ? { name: 'あなた', img: null } : { name: heroine(cast[idOf(l) - 1]).name, img: heroine(cast[idOf(l) - 1]).img });
+    // 顔の札（手直し 7章）：上がった人 ← 振り込んだ人（自分はアバターの絵。なければ顔の代わりに「あなた」の札）
+    const face = (l) => (idOf(l) === 0 ? { name: me().name, img: null, src: avatarSrc(me().avatar, true) } : { name: heroine(cast[idOf(l) - 1]).name, img: heroine(cast[idOf(l) - 1]).img });
     const faces = kind === 'hule' ? { winner: face(info.hule.l), from: info.hule.baojia == null ? null : face(info.hule.baojia) } : null;
     if (kind === 'hule') overlay.innerHTML = huleHTML(info.hule, names, src, { note, faces });
     if (kind === 'pingju') overlay.innerHTML = pingjuHTML(info.pingju, names, { note });

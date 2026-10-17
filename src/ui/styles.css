@@ -1,5 +1,14 @@
 /* 麻雀道場の見た目（設計書 8章・見本「明るめ A」）。画面は 393×852 で作り、窓に合わせて拡大・縮小する */
 :root { --gold:#d9b25c; --gold-lo:#9c7a33; --room:#e9dcc2; --ink:#3a2717; --leather1:#c08349; --leather2:#a36833; }
+/* 画面の作り直し（横持ち・黒と金。設計書 7章）の色。段1は対局の画面で、段2でほかの画面も使う */
+:root { --bg:#0f1114; --panel:#1a1d22; --panel-hi:#262a31; --line:#3a3f47; --gold-hi:#f2d48a; --ivory:#f4ecd6; --text:#e9e4d6; --text-lo:#a9a394; --shu:#c8411e; --shu-hi:#ff7a3d; }
+/* 横の画面（760×340）：left・top・scale は main.js の fit() が入れる。左上を軸に縮める */
+#stage.land { left:0; top:0; transform-origin:0 0; background:var(--bg); color:var(--text); box-shadow:none; }
+/* 縦に持っているとき（横の画面を開いている間だけ） */
+.rotate-hint { position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--gold-hi); text-align:center; font-weight:900; }
+.rotate-hint[hidden] { display:none; }
+.rotate-hint b { font-size:44px; }
+.rotate-hint p { margin:10px 0 0; font-size:16px; color:var(--text); }
 * { box-sizing:border-box; }
 html, body { margin:0; height:100%; background:#d8c8a8; overflow:hidden; }
 body { font-family:"Zen Kaku Gothic New","Yu Gothic UI","Hiragino Sans",sans-serif; color:var(--ink); -webkit-tap-highlight-color:transparent; }
@@ -16,9 +25,9 @@ button { font:inherit; }
   background:linear-gradient(#fbf5e9,#efe3cb); color:#6b4a28; box-shadow:inset 0 -2px 0 var(--gold); }
 .mj-top .kyoku { font-family:"Noto Serif JP",serif; font-size:15px; letter-spacing:.06em; color:#3d2512; }
 .mj-top .dora { display:flex; align-items:center; gap:2px; }
-/* 卓の器（手直し 3章）：縦が足りないときは卓（393×564）を --felt-k 倍に縮めて、器の上の真ん中に置く。演出の層 .mj-fx は画面いっぱい（結果の画面の下） */
-.mj-feltbox { position:relative; flex:0 0 auto; height:calc(564px * var(--felt-k, 1)); overflow:hidden; background:var(--room); }
-.mj-felt { position:absolute; left:50%; top:0; width:393px; height:564px; margin-left:-196.5px; overflow:hidden; background:var(--room); transform:scale(var(--felt-k, 1)); transform-origin:top center; }
+/* 卓の器（縦の画面の名残り。横の画面は #stage.land の指定で置き直す）。演出の層 .mj-fx は画面いっぱい（結果の画面の下） */
+.mj-feltbox { position:relative; flex:0 0 auto; height:564px; overflow:hidden; background:var(--room); }
+.mj-felt { position:absolute; left:50%; top:0; width:393px; height:564px; margin-left:-196.5px; overflow:hidden; background:var(--room); transform:none; transform-origin:top center; }
 .mj-fx { position:absolute; inset:0; z-index:30; pointer-events:none; overflow:hidden; }
 .mj-felt::before { content:""; position:absolute; inset:0; pointer-events:none;
   background:radial-gradient(ellipse 70% 55% at 50% 48%, rgba(255,246,226,.22), transparent 70%), url(../../assets/table/table-otsu.webp) center / 564px 564px no-repeat;
@@ -46,15 +55,22 @@ button { font:inherit; }
 /* ツモ切りの牌は少し薄く（段階3-5。雀魂・天鳳と同じ見せ方） */
 .river .t.tg img { opacity:.62; filter:saturate(.75); }
 
-.opp { display:flex; gap:1px; align-items:center; }
+/* 立体の卓（画面の作り直し 段1 作業2）：卓を斜めに倒し、席ごとの層を真ん中を軸に回して重ねる */
+.felt3d { position:absolute; left:50%; top:50%; width:330px; height:330px; margin:-165px 0 0 -165px; perspective:1500px; perspective-origin:50% 50%; }
+.felt { position:absolute; left:0; top:0; transform-style:preserve-3d; border-radius:10px;
+  background:radial-gradient(ellipse at 50% 45%, #2f8a5c 0%, #1f6a44 45%, #12452c 100%);
+  box-shadow:0 0 0 10px #5b3417, 0 0 0 13px #2b170a, inset 0 0 40px rgba(0,0,0,.55), 0 30px 40px rgba(0,0,0,.7); }
+.felt::before { content:""; position:absolute; inset:0; border-radius:10px; pointer-events:none; background:radial-gradient(ellipse at 50% 30%, rgba(255,240,200,.16), transparent 60%); }
+.seat { position:absolute; inset:0; transform-style:preserve-3d; }
+.seat > * { position:absolute; }
+.felt .screen { transform:translateZ(6px); }
+.screen .bplate { position:absolute; left:50%; top:50%; margin:-6px 0 0 -37px; }
+.opp { left:50%; bottom:2px; transform:translateX(-50%); display:flex; align-items:flex-end; gap:8px; transform-style:preserve-3d; }
+.opp .stand { display:flex; gap:1px; transform-origin:50% 100%; transform:rotateX(-90deg); }
+.opp .lay { display:flex; gap:1px; align-items:flex-end; }
 .opp .gap { width:4px; }
-.opp .mgap { width:6px; height:6px; }
-.opp .meld { display:flex; gap:1px; align-items:center; }
-.opp2 { left:50%; top:111px; transform:translateX(-50%); }
-.opp1, .opp3 { flex-direction:column; top:282px; transform:translateY(-50%); }
-.opp1 .meld, .opp3 .meld { flex-direction:column; }
-.opp1 { right:24px; }
-.opp3 { left:24px; }
+.opp .omelds, .opp .meld { display:flex; gap:1px; align-items:flex-end; }
+.opp .omelds { gap:4px; }
 
 .plate { display:flex; align-items:center; gap:7px; padding:4px 11px 4px 4px; border-radius:26px; font-size:11px; font-weight:700; line-height:1.3;
   background:linear-gradient(#fffaf0,#f3e6cc); color:var(--ink); box-shadow:0 0 0 1.5px var(--gold), 0 4px 10px rgba(60,35,10,.35), inset 0 1px 0 #fff; }
@@ -83,6 +99,9 @@ button { font:inherit; }
 .hand .meld { display:flex; gap:1px; align-items:flex-end; }
 .ht { touch-action:none; cursor:pointer; transition:transform .09s ease-out; }
 .ht.up { transform:translateY(-12px); }
+/* なぞると一段上がる（パソコンのマウスだけ・自分の切る番の切れる牌。1回のクリックで切る） */
+.ht.hov { transform:translateY(-10px); }
+.ht.hov img { filter:drop-shadow(0 0 1px #fff6d8) drop-shadow(0 5px 5px rgba(0,0,0,.35)); }
 .ht.up img { filter:drop-shadow(0 0 1.5px #fff6d8) drop-shadow(0 0 7px #ffc86b) drop-shadow(0 6px 6px rgba(0,0,0,.35)); }
 /* 鳴ける場面：鳴く牌を大きく光らせて脈打たせ、手牌のうち使う牌を浮かせる */
 @keyframes mj-call { 0%, 100% { transform:scale(1.45); } 50% { transform:scale(1.62); } }
@@ -457,3 +476,261 @@ button { font:inherit; }
 .title.has-extra .sub { margin-bottom:12px; }
 .title.has-extra .menu .btn { padding:9px; }
 .title.has-extra .faces { margin-bottom:10px; }
+
+/* ---- 名札と読みの札の置き場（画面の作り直し 段1 作業3。縦の画面は今までの位置） ---- */
+.plate.p1 { right:8px; top:40px; }
+.plate.p2 { left:8px; top:40px; }
+.plate.p3 { left:8px; bottom:22px; }
+.plate.p0 { display:none; }
+.plate .av-none { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%; font-weight:900; color:#fff8e6; background:linear-gradient(#a33a26,#7a1f15); box-shadow:0 0 0 1.5px var(--gold); }
+.rtag[data-rtag="1"] { right:8px; top:2px; }
+.rtag[data-rtag="2"] { left:8px; top:2px; }
+.rtag[data-rtag="3"] { left:8px; bottom:70px; }
+.mj-acts { display:none; }
+
+/* ---- 横の対局の画面（760×340。黒と金）---- */
+#stage.land .mj { display:block; background:radial-gradient(ellipse at 50% 32%, #3a2a1c 0%, #1b120c 58%, #070504 100%); }
+#stage.land .mj-top { position:absolute; left:0; right:0; top:0; height:28px; padding:0 230px 0 12px; z-index:20; color:var(--text); background:linear-gradient(rgba(0,0,0,.72),rgba(0,0,0,0)); box-shadow:none; }
+#stage.land .mj-top .kyoku { color:var(--gold-hi); font-size:14px; }
+#stage.land .mj-top .info { color:var(--text-lo); }
+#stage.land .mj-bottom { position:absolute; top:0; right:6px; height:28px; z-index:21; gap:2px; background:none; box-shadow:none; }
+#stage.land .mj-bottom button { color:var(--text); font-size:11px; padding:4px 8px; min-height:28px; border-radius:14px; }
+#stage.land .mj-bottom button:hover { background:rgba(255,255,255,.08); }
+#stage.land .mj-feltbox { position:absolute; left:0; top:4px; width:760px; height:280px; overflow:visible; background:none; }
+#stage.land .mj-felt { left:0; top:0; width:760px; height:280px; margin:0; overflow:visible; background:none; transform:none; }
+#stage.land .mj-felt::before, #stage.land .mj-felt::after { display:none; }
+/* 名札：左に上家・自分、右に下家、右上に対面（試し画面の並び） */
+#stage.land .plate { font-size:10.5px; color:var(--text); background:linear-gradient(rgba(26,29,34,.92),rgba(10,11,14,.92)); box-shadow:0 0 0 1px var(--gold-lo), 0 4px 10px rgba(0,0,0,.6); padding:3px 10px 3px 3px; max-width:200px; z-index:5; }
+#stage.land .plate .nm { color:#fff; white-space:nowrap; display:inline-block; max-width:112px; overflow:hidden; text-overflow:ellipsis; vertical-align:bottom; }
+#stage.land .plate .pts { color:var(--gold-hi); font-size:12px; }
+#stage.land .plate .av, #stage.land .plate .av-none { width:32px; height:32px; box-shadow:0 0 0 1.5px var(--gold); }
+#stage.land .plate .sty { color:var(--gold-hi); box-shadow:inset 0 0 0 1px var(--gold-lo); }
+#stage.land .plate .wd { color:var(--text-lo); }
+#stage.land .plate .wd.oya { color:#ff8a72; }
+#stage.land .plate.turn { box-shadow:0 0 0 2px var(--gold), 0 0 14px rgba(230,170,60,.7); }
+#stage.land .plate.p0 { display:flex; left:6px; top:212px; right:auto; bottom:auto; }
+#stage.land .plate.p1 { right:6px; top:124px; left:auto; bottom:auto; }
+#stage.land .plate.p2 { right:6px; top:32px; left:auto; bottom:auto; }
+#stage.land .plate.p3 { left:6px; top:166px; right:auto; bottom:auto; }
+#stage.land .rtag { z-index:6; }
+#stage.land .rtag[data-rtag="1"] { right:6px; top:166px; left:auto; bottom:auto; }
+#stage.land .rtag[data-rtag="2"] { right:6px; top:74px; left:auto; bottom:auto; }
+#stage.land .rtag[data-rtag="3"] { left:6px; top:122px; right:auto; bottom:auto; }
+/* 指南の帯：左上の半透明の札（卓の河を隠さない幅） */
+#stage.land .mj-band { position:absolute; left:6px; top:30px; width:196px; max-height:132px; min-height:0; overflow-y:auto; z-index:8; padding:6px 8px; gap:4px;
+  color:var(--text); background:rgba(14,16,20,.86); border-radius:10px; box-shadow:0 0 0 1px var(--gold-lo); }
+#stage.land .mj-band .msg { font-size:11.5px; color:var(--text); }
+#stage.land .mj-band:not(:has(.coach)):not(:has(.msg:not(:empty))) { display:none; }
+/* ボタン：手牌の右上 */
+#stage.land .mj-acts { display:block; position:absolute; right:8px; bottom:80px; z-index:15; }
+#stage.land .mj-acts .btns { display:flex; gap:8px; flex-wrap:nowrap; justify-content:flex-end; }
+#stage.land .mj-acts .btn { min-height:40px; padding:8px 18px; border-radius:20px; font-size:14px; color:#fff; background:linear-gradient(#5f646d,#33363c); box-shadow:0 0 0 1.5px #9aa0aa, 0 4px 8px rgba(0,0,0,.6); }
+#stage.land .mj-acts .btn.primary { background:linear-gradient(var(--shu-hi),var(--shu)); box-shadow:0 0 0 1.5px #ffd08a, 0 4px 8px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.45); }
+#stage.land .mj-acts .btn .mini { display:inline-flex; align-items:flex-end; gap:1px; margin-left:7px; vertical-align:middle; }
+#stage.land .mj-acts .btns.compact .btn { padding:6px 10px; }
+/* 自分の手牌：下に大きく */
+#stage.land .mj-me { position:absolute; left:0; right:0; bottom:0; height:70px; padding:2px 0 2px; z-index:10; background:linear-gradient(#1c2a44,#0c1322); box-shadow:inset 0 2px 0 var(--gold-lo), 0 -6px 14px rgba(0,0,0,.55); }
+#stage.land .mj-me::before { display:none; }
+#stage.land .mj-me .info { display:none; }
+#stage.land .hand { gap:1px; }
+#stage.land .hand .gap { width:9px; }
+#stage .felt .screen { position:absolute; }
+/* 左右の相手の手は真横からだと線に見えるので、少しだけ持ち主の側へ寝かせる（作業3の画像で決めた） */
+.seat[data-seat="1"] .opp .stand, .seat[data-seat="3"] .opp .stand { transform:rotateX(-70deg); }
+
+/* ---- 横の画面のカットイン（画面の作り直し 段1 作業4。黒と金の帯・光の筋） ---- */
+.cutin .streak, .cutin .you { display:none; }
+#stage.land .cutin .band { left:-10%; right:-10%; top:30%; height:132px; transform:skewY(-6deg);
+  background:linear-gradient(90deg, rgba(10,11,14,0), rgba(10,11,14,.94) 14%, rgba(26,29,34,.94) 86%, rgba(10,11,14,0));
+  box-shadow:0 -2px 0 var(--gold), 0 2px 0 var(--gold), 0 0 30px rgba(230,170,60,.35); }
+#stage.land .cutin .streak { display:block; position:absolute; left:-20%; top:calc(30% + 56px); width:60%; height:18px; transform:skewY(-6deg);
+  background:linear-gradient(90deg, transparent, rgba(255,236,180,.85), transparent); filter:blur(2px); animation:cut-streak var(--cut-ms, .65s) ease-out both; }
+#stage.land .cutin img, #stage.land .cutin .you { right:40px; top:12%; width:200px; height:200px; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.6), 0 0 0 3px var(--gold); }
+#stage.land .cutin .you { display:flex; position:absolute; align-items:center; justify-content:center; font-weight:900; font-size:28px; color:#fff8e6; background:linear-gradient(var(--shu-hi),var(--shu)); animation:cut-img var(--cut-ms, .65s) cubic-bezier(.2,.8,.3,1) both; }
+#stage.land .cutin .word { left:60px; top:36%; font-size:64px; color:var(--gold-hi); text-shadow:0 3px 0 #2b170a, 0 0 22px rgba(255,200,110,.85); }
+#stage.land .cutin .who { left:66px; top:58%; color:var(--text); }
+@keyframes cut-streak { 0% { transform:translateX(0) skewY(-6deg); opacity:0 } 20% { opacity:1 } 100% { transform:translateX(220%) skewY(-6deg); opacity:0 } }
+
+/* 横の画面の結果の札（上がり・流局・終局）：高さ 340 に収め、中は流せる（中身の見た目は段2で作り直す） */
+#stage.land .mj-overlay { padding:8px; background:rgba(0,0,0,.55); }
+#stage.land .mj-overlay > * { max-height:320px; overflow-y:auto; }
+body:has(#stage.land) { background:var(--bg); }
+
+/* ---- 最後のレビューの直し ---- */
+/* 縦の卓（感想戦・問題集。段2まで縦）に古い平らな卓の絵を重ねない */
+.mj-felt:has(.felt3d)::before { display:none; }
+/* ヒントの表を横の画面の高さに収める */
+#stage.land .sheet { top:30px; max-height:300px; left:auto; right:8px; width:min(540px, calc(100% - 16px)); }
+/* 自分のリーチの光は名札に（横の画面では手牌の上の .info を出さない） */
+.mj.fx-reach-0 [data-plate="0"] .reach { background:#e0362a; box-shadow:0 0 0 1.5px #fff6d8, 0 0 10px 3px #ffc86b; }
+/* ドラ表示牌は上の帯（28px）に収める */
+#stage.land .mj-top .dora .t { transform:scale(.78); transform-origin:center; margin:-4px -2px; }
+
+/* ======== 画面の作り直し 段2：全部の画面を横（760×340）と黒と金に ======== */
+#stage.land { color:var(--text); }
+#stage.land .btn { min-height:38px; color:var(--text); background:linear-gradient(var(--panel-hi),var(--panel)); box-shadow:0 0 0 1px var(--gold-lo), 0 3px 8px rgba(0,0,0,.5); }
+#stage.land .btn.primary { color:#fff; background:linear-gradient(var(--shu-hi),var(--shu)); box-shadow:0 0 0 1.5px #ffd08a, 0 3px 8px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.4); }
+#stage.land .btn:disabled { opacity:.5; }
+#stage.land .mini { color:var(--text); background:var(--panel-hi); box-shadow:0 0 0 1px var(--line); }
+#stage.land .seg { box-shadow:0 0 0 1px var(--gold-lo); }
+#stage.land .seg button { background:var(--panel); color:var(--text-lo); min-height:38px; }
+#stage.land .seg button.on { background:linear-gradient(var(--gold),var(--gold-lo)); color:#1a1206; }
+
+/* タイトル：左に名前・顔・級・説明、右にボタン */
+#stage.land .title { flex-direction:row; align-items:stretch; gap:26px; padding:18px 26px; color:var(--text);
+  background:radial-gradient(ellipse at 30% 40%, #2b2318 0%, #14110d 55%, #07060a 100%); }
+#stage.land .title .t-left { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; }
+#stage.land .title .t-right { width:250px; display:flex; flex-direction:column; justify-content:safe center; gap:6px; overflow-y:auto; }
+#stage.land .title .brand { color:var(--gold); }
+#stage.land .title h1 { color:var(--gold-hi); font-size:46px; text-shadow:0 2px 0 #2b170a, 0 0 22px rgba(242,212,138,.35); }
+#stage.land .title .sub { color:var(--text-lo); margin-bottom:12px; }
+#stage.land .title .dj-title-rank { margin:-6px 0 10px; color:var(--gold-hi); }
+#stage.land .title .faces { margin-bottom:12px; }
+#stage.land .title .note { margin-top:6px; color:var(--text-lo); font-size:11px; }
+#stage.land .title .menu { width:auto; gap:7px; }
+#stage.land .title .menu .btn { font-size:15px; padding:8px; }
+#stage.land .title .title-update { margin:4px 0 0; }
+#stage.land .title .title-home { margin:2px 0 0; color:var(--gold-hi); }
+#stage.land .title .title-ver { position:static; align-self:flex-end; margin-top:4px; color:var(--text-lo); }
+#stage.land .title.has-extra { padding-top:18px; }
+
+/* 設定：2列・流せる */
+#stage.land .settings-layer { overflow-y:auto; background:var(--bg); }
+#stage.land .settings { display:grid; grid-template-columns:1fr 1fr; gap:0 22px; padding:12px 18px 16px; color:var(--text); }
+#stage.land .settings h2 { grid-column:1 / -1; color:var(--gold-hi); }
+#stage.land .settings h3 { color:var(--gold); }
+#stage.land .settings .sub, #stage.land .settings .credit, #stage.land .settings .rrow small { color:var(--text-lo); }
+#stage.land .settings .rrow .rl { color:var(--text); }
+#stage.land .settings .box { background:var(--panel); box-shadow:0 0 0 1px var(--gold-lo); }
+#stage.land .settings .psave input { background:var(--panel-hi); color:var(--text); box-shadow:inset 0 0 0 1px var(--line); }
+#stage.land .settings .pitem { box-shadow:0 0 0 1px var(--line); }
+#stage.land .settings .pitem button { background:var(--panel); color:var(--text); }
+#stage.land .settings .pitem .pdel { background:var(--panel-hi); color:#ff8a72; }
+#stage.land .settings .rules .mini { color:var(--text); }
+#stage.land .settings .credit { border-top-color:var(--line); }
+#stage.land .settings .s-close { grid-column:1 / -1; }
+
+/* 確かめの窓・このゲームについて・案内の札 */
+#stage.land .confirm-layer, #stage.land .about-layer { background:rgba(0,0,0,.6); }
+#stage.land .confirm { width:520px; max-width:calc(100% - 32px); max-height:300px; overflow-y:auto; color:var(--text); background:linear-gradient(var(--panel-hi),var(--panel)); box-shadow:0 0 0 1.5px var(--gold-lo), 0 12px 30px rgba(0,0,0,.6); }
+#stage.land .confirm p small { color:var(--text-lo); }
+#stage.land .about h3 { color:var(--gold-hi); }
+#stage.land .about .about-credits li { border-bottom-color:var(--line); }
+
+/* 道場（画面の作り直し 段2 作業3）：上に帯、下に左右2列（章の一覧｜中身、図｜文、図と問い｜選択肢と解説） */
+#stage.land .dj { height:100%; min-height:0; background:var(--bg); color:var(--text); }
+#stage.land .dj-bar { padding:6px 12px; min-height:36px; background:linear-gradient(var(--panel-hi),var(--panel)); box-shadow:inset 0 -1.5px 0 var(--gold-lo); }
+#stage.land .dj-bar h4 { color:var(--gold-hi); font-size:15px; }
+#stage.land .dj-bar .back { color:var(--gold); min-height:38px; }
+#stage.land .dj-who { color:var(--text-lo); }
+#stage.land .dj-rev { color:var(--text); background:var(--panel-hi); box-shadow:0 0 0 1px var(--gold-lo); min-height:38px; }
+#stage.land .dj-rev em { color:var(--gold-hi); }
+#stage.land .dj-body { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:8px 12px 10px; overflow:hidden; }
+#stage.land .dj-chs { order:1; min-height:0; overflow-y:auto; padding:2px; }
+#stage.land .dj-det { order:2; min-height:0; overflow-y:auto; background:linear-gradient(var(--panel-hi),var(--panel)); box-shadow:0 0 0 1px var(--gold-lo); }
+#stage.land .dj-det h5 { color:var(--gold-hi); }
+#stage.land .dj-det > p, #stage.land .dj-soon { color:var(--text-lo); }
+#stage.land .dj-ch { background:var(--panel); box-shadow:0 0 0 1px var(--line); color:var(--text); }
+#stage.land .dj-ch.sel { box-shadow:0 0 0 2px var(--gold); }
+#stage.land .dj-ch .tt small { color:var(--text-lo); }
+#stage.land .dj-ch .st { color:var(--text-lo); box-shadow:0 0 0 1px var(--line); }
+#stage.land .dj-ch .st.open { color:var(--text); box-shadow:0 0 0 1px var(--gold); }
+#stage.land .dj-ch .stt { color:var(--gold-hi); }
+#stage.land .dj-step { background:var(--panel); box-shadow:0 0 0 1px var(--line); color:var(--text); min-height:40px; }
+#stage.land .dj-step small, #stage.land .dj-step .r { color:var(--text-lo); }
+#stage.land .dj-firstbody { flex:1; display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:auto auto 1fr; gap:10px; padding:14px 18px; }
+#stage.land .dj-firstbody h3, #stage.land .dj-firstbody p { grid-column:1 / -1; color:var(--text); }
+#stage.land .dj-firstbody h3 { color:var(--gold-hi); }
+/* 講義：左に図、右に文 */
+#stage.land .dj-lec .dj-page { flex:1; min-height:0; display:grid; grid-template-columns:360px 1fr; gap:12px; padding:8px 12px 0; overflow:hidden; }
+#stage.land .dj-lfig { min-height:0; overflow-y:auto; display:flex; align-items:flex-start; justify-content:center; }
+#stage.land .dj-ltext { min-height:0; overflow-y:auto; padding-right:4px; }
+#stage.land .dj-page h3 { color:var(--gold-hi); font-size:17px; }
+#stage.land .dj-page h6 { color:var(--gold); margin-top:0; }
+#stage.land .dj-txt p, #stage.land .dj-sum li { font-size:13px; line-height:1.7; color:var(--text); }
+#stage.land .dj-key { background:rgba(242,212,138,.10); box-shadow:inset 3px 0 0 var(--gold); color:var(--text); }
+#stage.land .dj-key strong { color:var(--gold-hi); }
+#stage.land .dj-nav { padding:6px 12px 8px; background:linear-gradient(rgba(15,17,20,0),var(--bg) 35%); }
+#stage.land .dj-nav .dots i { background:var(--line); }
+#stage.land .dj-nav .dots i.on { background:var(--gold); }
+/* 問題：左に図と問い、右に選択肢と解説 */
+#stage.land .dj-quiz .dj-q { flex:1; min-height:0; display:grid; grid-template-columns:360px 1fr; gap:12px; padding:8px 12px 10px; overflow:hidden; }
+#stage.land .dj-qleft { min-height:0; overflow-y:auto; }
+#stage.land .dj-qright { min-height:0; overflow-y:auto; padding-right:4px; }
+#stage.land .dj-qhead, #stage.land .dj-prompt { color:var(--text); }
+#stage.land .dj-op { min-height:40px; color:var(--text); background:var(--panel); box-shadow:0 0 0 1px var(--gold-lo); }
+#stage.land .dj-fb { background:var(--panel); box-shadow:0 0 0 1px var(--gold-lo); color:var(--text); }
+/* 試験の結果：流せる */
+#stage.land .dj-res { flex:1; min-height:0; overflow-y:auto; padding:10px 14px; color:var(--text); }
+#stage.land .dj-wrong-item { background:var(--panel); box-shadow:0 0 0 1px var(--line); }
+#stage.land .dj-exp { align-self:start; min-height:96px; }
+.notice { background:#1a1d22; color:#e9e4d6; box-shadow:0 0 0 1px #8a6a2c, 0 6px 16px rgba(0,0,0,.6); }
+
+/* 問題集の入口・感想戦（画面の作り直し 段2 作業4） */
+#stage.land .problems-layer { overflow-y:auto; background:var(--bg); }
+#stage.land .problems { display:grid; grid-template-columns:1fr 1fr; gap:0 20px; padding:10px 18px 14px; color:var(--text); }
+#stage.land .problems h2 { color:var(--gold-hi); margin-top:0; }
+#stage.land .problems h3 { color:var(--gold); }
+#stage.land .problems .sub, #stage.land .problems small { color:var(--text-lo); }
+#stage.land .problems .pkind, #stage.land .problems .ptend { color:var(--text); background:var(--panel); box-shadow:0 0 0 1px var(--line); min-height:38px; }
+#stage.land .problems .ptype li { border-bottom-color:var(--line); }
+#stage.land .problems .pb-left .btn[data-pb="close"] { margin-top:12px; }
+/* 感想戦・問題集の下の段（何問目・次へ・やめる）：上の帯の右に、押しやすい高さで */
+#stage.land .mj-bottom.rv-bottom { top:0; right:6px; height:40px; max-width:430px; gap:8px; padding:0 4px; color:var(--text); }
+#stage.land .mj-bottom.rv-bottom .rv-where { color:var(--text-lo); }
+#stage.land .mj-bottom.rv-bottom .rv-step { color:var(--gold-hi); }
+#stage.land .mj-bottom.rv-bottom button, #stage.land .mj-bottom.rv-bottom .rv-next, #stage.land .mj-bottom.rv-bottom .rv-retry { min-height:38px; }
+#stage.land .mj.rv .mj-top { padding-right:440px; }
+
+/* 結果の札・指南の帯・ヒントの表（画面の作り直し 段2 作業5）：黒の地・象牙と金の字 */
+#stage.land .panel { background:linear-gradient(var(--panel-hi),var(--panel)); color:var(--text); box-shadow:0 0 0 1.5px var(--gold-lo), 0 12px 30px rgba(0,0,0,.6); }
+#stage.land .panel h2 { color:var(--gold-hi); }
+#stage.land .panel li { border-bottom-color:var(--line); }
+#stage.land .panel .score b { color:var(--gold-hi); }
+#stage.land .panel .plus { color:#7fd18a; } #stage.land .panel .minus { color:#ff8a72; }
+#stage.land .panel .hand-note { background:rgba(242,212,138,.08); box-shadow:0 0 0 1px var(--gold-lo); }
+#stage.land .panel .hand-note h3 { color:var(--gold); }
+#stage.land .panel .dealin-read { color:#ff8a72; }
+#stage.land .panel .hule-who .face { color:var(--text); }
+#stage.land .panel .hule-who .arrow { color:var(--gold); text-shadow:none; }
+#stage.land .panel .hule-who .how { color:var(--shu-hi); }
+#stage.land .panel.result { display:grid; grid-template-columns:minmax(0, 1.25fr) minmax(0, 1fr); gap:0 18px; width:min(720px, 100%); max-height:320px; overflow-y:auto; }
+#stage.land .panel.result:not(:has(.r-left)) { display:block; width:min(460px, 100%); }
+#stage.land .panel.result .r-left, #stage.land .panel.result .r-right { min-width:0; }
+#stage.land .sheet { background:var(--panel); color:var(--text); box-shadow:0 0 0 1.5px var(--gold-lo), 0 12px 30px rgba(0,0,0,.6); }
+#stage.land .sheet td, #stage.land .sheet th { border-bottom-color:var(--line); }
+#stage.land .sheet th, #stage.land .sheet .snote, #stage.land .sheet .sclose { color:var(--text-lo); }
+#stage.land .sheet .shead b { color:var(--gold-hi); }
+#stage.land .sheet tr.best td { color:#7fd18a; }
+#stage.land .sheet .sread { background:var(--panel-hi); }
+#stage.land .mj-band .coach { color:var(--text); }
+#stage.land .mj-band .coach b { color:var(--gold-hi); }
+/* 段2 最後のレビューの直し：象牙色の図は濃い文字・黒の地に残った濃い文字を明るく・小さいボタンも高さ38 */
+#stage.land .dj-fig { color:var(--ink); }
+#stage.land .rv-summary .rv-task { color:var(--text); background:var(--panel-hi); box-shadow:0 0 0 1.5px var(--gold-lo); }
+#stage.land .rv-summary .rv-task .sub { color:var(--text-lo); }
+#stage.land .rv-summary .rv-prev { color:#7fd18a; }
+#stage.land .sheet .sread .truth { color:#ff8a72; }
+#stage.land .sheet tr.sub td { color:var(--text-lo); }
+#stage.land .problems .ptend b { color:var(--gold-hi); }
+#stage.land .pb-result .pbt small { color:var(--gold); }
+#stage.land .creason.ng { color:#ff8a72; }
+#stage.land .coach .rown { color:#7fd18a; }
+#stage.land button.mini { min-height:38px; }
+/* 名前とアバターの札・設定の行（画面の作り直し 段3）：左に名前の欄と決めるボタン、右に絵の8人と「なし」 */
+.profile-layer { position:absolute; inset:0; z-index:75; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); }
+#stage.land .profile { display:grid; grid-template-columns:220px 1fr; gap:0 18px; width:min(700px, calc(100% - 24px)); max-height:320px; overflow-y:auto; padding:14px 16px; text-align:left; }
+#stage.land .profile h2 { margin:0 0 2px; font-size:18px; }
+#stage.land .profile .pf-left { display:flex; flex-direction:column; gap:8px; min-width:0; }
+#stage.land .profile .pf-left .sub { margin:0; font-size:11.5px; line-height:1.5; color:var(--text-lo); }
+#stage.land .profile input[data-pf-name] { min-height:38px; padding:0 10px; border:0; border-radius:8px; font:inherit; font-size:15px; font-weight:700; color:var(--text); background:var(--panel-hi); box-shadow:inset 0 0 0 1px var(--gold-lo); }
+#stage.land .profile .pf-right { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; align-content:center; }
+#stage.land .profile [data-av] { min-height:38px; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; border:0; border-radius:10px; font:inherit; color:var(--text-lo); background:var(--panel); box-shadow:0 0 0 1px var(--line); cursor:pointer; }
+#stage.land .profile [data-av] img, #stage.land .profile [data-av] .pf-none { width:62px; height:62px; border-radius:50%; object-fit:cover; }
+#stage.land .profile [data-av] .pf-none { display:flex; align-items:center; justify-content:center; background:var(--panel-hi); font-weight:900; }
+#stage.land .profile [data-av] small { font-size:11px; font-weight:700; }
+#stage.land .profile [data-av].on { color:var(--gold-hi); box-shadow:0 0 0 2px var(--gold-hi), 0 0 12px rgba(242,212,138,.35); }
+#stage.land .settings .pf-row { display:flex; align-items:center; gap:10px; margin:4px 0 8px; }
+#stage.land .settings .pf-face { flex:none; width:44px; height:44px; border-radius:50%; object-fit:cover; box-shadow:0 0 0 2px var(--gold-lo); }
+#stage.land .settings .pf-none { display:flex; align-items:center; justify-content:center; background:var(--panel-hi); color:var(--gold-hi); font-weight:900; }
+#stage.land .settings .pf-row b { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }

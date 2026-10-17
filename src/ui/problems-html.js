@@ -44,13 +44,18 @@ export function problemsHomeHTML({ today, kinds, tendencies, trend, enough }) {
   const typeHTML = trend.byType.length
     ? `<ul class="ptype">${trend.byType.map((t) => `<li><span>${esc(t.name)}</span><b>${t.ok}/${t.n}</b></li>`).join('')}</ul>`
     : '';
+  // 横の画面（画面の作り直し 段2）：左に今日の問題と種類、右に傾向と推移
   return `<div class="problems">
+  <div class="pb-left">
   <h2>問題集</h2>
   <div class="ptoday">${todayHTML}</div>
   <h3>種類ごと</h3><div class="pkinds">${kindsHTML}</div>
+  <button class="btn" data-pb="close">閉じる</button>
+  </div>
+  <div class="pb-right">
   <h3>あなたの傾向</h3>${tendHTML}
   <h3>成績の推移</h3>${trendSVG(trend.points)}${typeHTML}
-  <button class="btn" data-pb="close">閉じる</button>
+  </div>
 </div>`;
 }
 

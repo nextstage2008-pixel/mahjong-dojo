@@ -6,6 +6,7 @@ import { MATCH_TYPES, RULE_OPTIONS, STANDARD_RULES, normalizeRules } from '../co
 import { LEVELS } from '../coach/session.js';
 import { TASK_TIPS } from '../coach/review.js';
 import { normalizeDojo } from '../dojo/record.js';
+import { normalizeName, normalizeAvatar } from '../core/profile.js';
 
 export const KEYS = {
   settings: 'mahjong-dojo.settings.v1',
@@ -24,7 +25,8 @@ export const KEYS = {
 
 // rules：はじめからの対局のルール（段階2-3）。presets：名前を付けて保存したルールの組み合わせ（[{ name, rules }]）
 // taskNotice：次の半荘で課題の場面に帯の札「課題」を出すか（段階3-1）。handReview：局の結果の画面に「この局」を出すか（段階3-2）
-export const DEFAULT_SETTINGS = { maleVoice: 'kurono', chatter: 'normal', cutin: true, silentPlay: false, coachLevel: 'all', rules: { ...STANDARD_RULES }, presets: [], taskNotice: true, handReview: true };
+// playerName・avatar・profileAsked：自分の名前・アバター・名前とアバターの札を出したか（画面の作り直し 段3）
+export const DEFAULT_SETTINGS = { maleVoice: 'kurono', chatter: 'normal', cutin: true, silentPlay: false, coachLevel: 'all', rules: { ...STANDARD_RULES }, presets: [], taskNotice: true, handReview: true, playerName: '', avatar: null, profileAsked: false };
 const isMatchType = (t) => Object.hasOwn(MATCH_TYPES, t);
 
 // 組み合わせは5つまで・名前は10字まで（段階2-3 設計書 3.2）
@@ -74,6 +76,9 @@ export function normalizeSettings(raw) {
     if (LEVELS.includes(raw.coachLevel)) s.coachLevel = raw.coachLevel;
     if (typeof raw.taskNotice === 'boolean') s.taskNotice = raw.taskNotice;
     if (typeof raw.handReview === 'boolean') s.handReview = raw.handReview;
+    s.playerName = normalizeName(raw.playerName);
+    s.avatar = normalizeAvatar(raw.avatar);
+    if (typeof raw.profileAsked === 'boolean') s.profileAsked = raw.profileAsked;
     s.rules = normalizeRules(raw.rules, isMatchType(raw.matchType) ? raw.matchType : 'tonnan');
     s.presets = normalizePresets(raw.presets);
   }

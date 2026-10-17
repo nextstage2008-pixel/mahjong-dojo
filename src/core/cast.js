@@ -26,7 +26,16 @@ export const MALE_VOICES = [
   { key: 'kenzaki', label: '低めで穏やかな声', vv: '剣崎雌雄' },
   { key: 'rito', label: '低く落ち着いた声', vv: '離途' },
   { key: 'ritoS', label: '重厚な低音', vv: '離途' },
+  // 女性の声4種（画面の作り直し 段3。自分のアバターの女性4人）：大人の設定の2人の声を VOICEVOX のモーフィングで半分ずつ混ぜた声。
+  // 相手の7人とは違う声にするため。高校生の設定の声は使わない（リサーチノート「2026-10-17_VOICEVOXの大人の女性の声（麻雀道場の自分のアバター）」）
+  { key: 'fSporty', label: '明るい女性の声', mix: ['雨晴はう', 'WhiteCUL'] },
+  { key: 'fMegane', label: '知的な女性の声', mix: ['冥鳴ひまり', 'WhiteCUL'] },
+  { key: 'fKimono', label: '上品な女性の声', mix: ['波音リツ', '冥鳴ひまり'] },
+  { key: 'fCool', label: 'クールな女性の声', mix: ['波音リツ', '冥鳴ひまり'] },
 ];
+
+// 声のもとの VOICEVOX のキャラの名前（1人の声はその人・混ぜた声は2人）
+export const vvNames = (v) => v.mix || [v.vv];
 
 export function heroine(key) {
   return HEROINES.find((h) => h.key === key) || null;
@@ -66,6 +75,6 @@ export function pickCast(seed) {
 export function creditLines(maleKey) {
   const names = [...new Set(HEROINES.map((h) => h.vv))];
   const m = maleVoice(maleKey);
-  if (m && !names.includes(m.vv)) names.push(m.vv);
+  if (m) for (const n of vvNames(m)) if (!names.includes(n)) names.push(n);
   return names.map((n) => 'VOICEVOX:' + n);
 }

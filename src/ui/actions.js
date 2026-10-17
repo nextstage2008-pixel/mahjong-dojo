@@ -128,10 +128,19 @@ export function cutInSpec(scene) {
 // 上がった人の席と上がり牌の光・ロンの矢印と牌・倒した手を見せる間
 export const FX_MS = { riichiGlow: 1800, stickDrop: 700, winGlow: 2600, ronArrow: 1200, reveal: 1600 };
 
+// 手牌をなぞる音（2026-10-17 先生「なぞったら、からからからみたいな軽快な音」）：パソコンのマウスで、さっきと違う牌に乗ったら鳴らす。
+// スマホの指・ペンでは鳴らさない（先生の判断）。続けて鳴らすのは TRACE_GAP_MS あける（速くなぞっても音が団子にならないように）。
+// tile：乗った牌（data-i。牌の外なら null）。last：さっき乗っていた牌。now・lastAt：今と前に鳴らした時刻（ミリ秒）
+export const TRACE_GAP_MS = 30;
+export function traceTick({ pointerType, tile, last, now, lastAt }) {
+  return pointerType === 'mouse' && tile !== null && tile !== last && now - lastAt >= TRACE_GAP_MS;
+}
+
 // 手牌の操作（先生のご要望「触ってから反応するまでがもっさり」）：phase は 'down'（触れた瞬間）か 'up'（離したとき）。
 // 触れた瞬間に、浮いていない牌は浮かせ（'raise'）、浮いている牌は切る（'discard'）。離したときは、上へはじいたときだけ切る。
-// selected：その牌がすでに浮いているか。moved・dy（上が負）・dt（押していた時間）：はじいたかを見る
-export function handTouch(phase, { selected = false, moved = false, dy = 0, dt = 0 } = {}) {
-  if (phase === 'down') return selected ? 'discard' : 'raise';
+// selected：その牌がすでに浮いているか。moved・dy（上が負）・dt（押していた時間）：はじいたかを見る。
+// mouse：パソコンのマウス。なぞった牌はもう一段上がっているので、押した瞬間に切る（2026-10-17 先生「1回のクリックで切る」）
+export function handTouch(phase, { selected = false, moved = false, dy = 0, dt = 0, mouse = false } = {}) {
+  if (phase === 'down') return selected || mouse ? 'discard' : 'raise';
   return moved && (dy < -34 || (dy < -14 && dt < 160)) ? 'discard' : 'none';
 }

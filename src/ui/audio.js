@@ -60,6 +60,8 @@ export function createAudio() {
     discard: (strong, mine = false) => play(nextPut(), { gain: (strong || mine ? 1 : 0.85) * jitter(0.08), rate: (strong ? 0.96 : 1) * jitter(0.02) }),
     tsumo: () => play(nextPut(), { gain: 0.32 * jitter(0.08), rate: 1.06 * jitter(0.02) }),
     tick: () => play(nextPut(), { gain: 0.12, rate: 1.25 }),
+    // 手牌をなぞったときの軽い「カラッ」（牌の音を高く小さく。続けて鳴ると「からからから」）
+    trace: () => play(nextPut(), { gain: 0.14 * jitter(0.1), rate: 1.6 * jitter(0.06) }),
     // 切った瞬間（指が触れた瞬間）の軽い「カッ」
     press: () => play(nextPut(), { gain: 0.3, rate: 1.35 }),
     stick: () => play(`assets/sfx/bou${1 + Math.floor(Math.random() * 3)}.mp3`, { gain: 0.8 }),

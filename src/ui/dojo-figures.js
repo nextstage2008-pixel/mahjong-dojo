@@ -6,7 +6,7 @@ import { TILE_VIEWS } from './tile-art.js';
 
 const WIND = ['東', '南', '西', '北'];
 // 1行に並べられる幅（390px から余白を引いた幅）
-const ROW_W = 330;
+const ROW_W = 340; // 横の画面の左の列（画面の作り直し 段2）
 const scaleFor = (n, view = 'hand', extra = 0) => Math.min(1, (ROW_W - extra) / (n * TILE_VIEWS[view].w));
 
 export const tilesHTML = (codes, src, { view = 'hand', scale = 1 } = {}) => codes.map((c) => tileHTML(src, c, view, { scale })).join('');
