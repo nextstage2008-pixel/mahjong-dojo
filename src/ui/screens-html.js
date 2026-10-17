@@ -88,6 +88,8 @@ export function settingsHTML(settings, { inGame = false } = {}) {
   <div class="s-col">
   <h3>名前とアバター</h3><p class="sub">卓の名札・カットイン・結果の画面に出す名前と絵</p>
   <div class="pf-row">${meFace}<b>${esc(me.name)}</b><button class="mini" data-act="profile">変える</button></div>
+  <h3>対局の速さ</h3><p class="sub">CPU が考える間と、牌が飛ぶ・手牌が動く速さ（カットインと光の演出は変わらない）</p>
+  ${seg('gameSpeed', settings.gameSpeed || 'fast', [['slow', 'ゆっくり'], ['normal', 'ふつう'], ['fast', '速い']])}
   <h3>指南の量</h3><p class="sub">考えどころで出す指南。対局の画面の上の帯のボタンでも切り替えられる</p>
   ${seg('coachLevel', settings.coachLevel, [['all', '全部'], ['hint', 'ヒント'], ['none', 'なし']])}
   <h3>局ごとの振り返り</h3><p class="sub">局の結果の画面に、この局の判断と、同じ山をお手本が打った結果を出す</p>

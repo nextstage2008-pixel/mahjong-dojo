@@ -2,7 +2,7 @@
 // 「agent（自分の選ぶことを返す）」として渡す。動き・音・声が終わるまで返事を待たせて、進む速さを決める。
 import { tableView, tileName, revealOf, arrowFrom } from './view-model.js';
 import { feltHTML, platesHTML, topHTML, meHTML, callButtonHTML, esc, bottomBarHTML, readTagsHTML } from './table-html.js';
-import { buttonsFor, messageFor, allowedIndexes, discardOption, autoReply, riichiAutoDiscard, waitingMessage, usedHandTiles, callVerdictPlace, callButtonsCompact, cutInSpec, FX_MS, handTouch, traceTick } from './actions.js';
+import { buttonsFor, messageFor, allowedIndexes, discardOption, autoReply, riichiAutoDiscard, waitingMessage, usedHandTiles, callVerdictPlace, callButtonsCompact, cutInSpec, FX_MS, handTouch, traceTick, paceOf } from './actions.js';
 import { huleHTML, pingjuHTML, jiejuHTML, dealInLineHTML, damaLineHTML, damaLineFor } from './result-html.js';
 import { kindOf } from '../core/ai.js';
 import { readSyncPlan } from './read-sync.js';
@@ -56,6 +56,8 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
   // リーチの後に自動で切るまでの間（引いた牌を見せる）
   const RIICHI_AUTO_MS = 650;
   const T = (ms) => ms * speed;
+  // 流れの待ちと動き：対局の速さを掛ける（設定。演出は T のまま）
+  const P = (ms) => T(ms) * paceOf(getSettings());
   let player = null; // 自分の Player（盤面は player.model）
   let replaying = false;
   let chain = Promise.resolve(); // 動きの順番待ち
@@ -143,7 +145,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
     if (zimoSlide !== null) {
       const elapsed = performance.now() - zimoSlide;
       const z = meEl.querySelector('.ht.zimo');
-      if (elapsed < T(170) && z) slideIn(z, T(170), elapsed);
+      if (elapsed < P(170) && z) slideIn(z, P(170), elapsed);
       else zimoSlide = null;
     }
   }
@@ -548,7 +550,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
           // 引いた牌が出たらすぐ触れるように、滑り込みの終わりを待たずに問いへ進む（先生のご要望「もっさり」）。
           // 問いで手牌を描き直しても、滑り込みは途中から続ける（renderMe）
           zimoSlide = performance.now();
-          if (el) slideIn(el, T(170));
+          if (el) slideIn(el, P(170));
           audio.tsumo();
           vibrate(5);
         }
@@ -565,11 +567,11 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
         if (call && !auto) root.classList.add(`fx-stick-${rel}`);
         render();
         const el = lastRiverTile(rel);
-        if (el && from && !auto) await flyTile({ root, scale: scale(), fromRect: from, toEl: el, duration: T(160), lift: call ? 70 : 46, startTurn: rel === 0 ? 0 : RIVER_TURN[rel], endTurn: RIVER_TURN[rel], impact: rel === 0 });
+        if (el && from && !auto) await flyTile({ root, scale: scale(), fromRect: from, toEl: el, duration: P(160), lift: call ? 70 : 46, startTurn: rel === 0 ? 0 : RIVER_TURN[rel], endTurn: RIVER_TURN[rel], impact: rel === 0, settle: P(rel === 0 ? 160 : 110) });
         audio.discard(!!call, rel === 0);
         if (rel === 0 && el && !auto) glowAt(fxEl, fxLocal(el), T(380));
         vibrate(call ? [18, 30, 10] : 12);
-        if (before) flipHand(meEl, before, scale(), T(150));
+        if (before) flipHand(meEl, before, scale(), P(150));
         if (call) {
           if (!auto) riichiFx(rel, el);
           await wait(T(150));
@@ -584,7 +586,7 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
       enqueue(async () => {
         say(call.l, call.scene);
         render();
-        if (!(await showCutIn(call.l, call.scene))) await wait(T(450));
+        if (!(await showCutIn(call.l, call.scene))) await wait(P(450));
       });
       return;
     }
@@ -620,18 +622,18 @@ export function createTableUI({ root, art, audio, voices, getSettings, cast, aut
         const b = player.model;
         hand = { start: getPosition(), defen: b.defen[0], where: { zhuangfeng: b.zhuangfeng, jushu: b.jushu, changbang: b.changbang } };
         audio.shuffle();
-        await wait(T(500));
+        await wait(P(500));
         return {};
       }
       case 'otherZimo':
-        await wait(T(320));
+        await wait(P(320));
         return {};
       case 'myZimo': {
         await sheetClosed();
         // リーチの後は、上がれず・カンもできなければ引いた牌を見せてから自動で切る（2026-10-16 先生の希望）
         const tsumogiri = riichiAutoDiscard(kind, info, !!player?.shoupai?.lizhi);
         if (tsumogiri) {
-          await wait(T(RIICHI_AUTO_MS));
+          await wait(P(RIICHI_AUTO_MS));
           if (disposed) return {};
           const z = meEl.querySelector('.ht.zimo img');
           if (z) pendingSource = z.getBoundingClientRect();

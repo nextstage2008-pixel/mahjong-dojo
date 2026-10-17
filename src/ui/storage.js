@@ -25,8 +25,8 @@ export const KEYS = {
 
 // rules：はじめからの対局のルール（段階2-3）。presets：名前を付けて保存したルールの組み合わせ（[{ name, rules }]）
 // taskNotice：次の半荘で課題の場面に帯の札「課題」を出すか（段階3-1）。handReview：局の結果の画面に「この局」を出すか（段階3-2）
-// playerName・avatar・profileAsked：自分の名前・アバター・名前とアバターの札を出したか（画面の作り直し 段3）
-export const DEFAULT_SETTINGS = { maleVoice: 'kurono', chatter: 'normal', cutin: true, silentPlay: false, coachLevel: 'all', rules: { ...STANDARD_RULES }, presets: [], taskNotice: true, handReview: true, playerName: '', avatar: null, profileAsked: false };
+// playerName・avatar・profileAsked：自分の名前・アバター・名前とアバターの札を出したか（画面の作り直し 段3）。gameSpeed：対局の速さ（slow・normal・fast）
+export const DEFAULT_SETTINGS = { maleVoice: 'kurono', chatter: 'normal', cutin: true, silentPlay: false, coachLevel: 'all', rules: { ...STANDARD_RULES }, presets: [], taskNotice: true, handReview: true, playerName: '', avatar: null, profileAsked: false, gameSpeed: 'fast' };
 const isMatchType = (t) => Object.hasOwn(MATCH_TYPES, t);
 
 // 組み合わせは5つまで・名前は10字まで（段階2-3 設計書 3.2）
@@ -79,6 +79,7 @@ export function normalizeSettings(raw) {
     s.playerName = normalizeName(raw.playerName);
     s.avatar = normalizeAvatar(raw.avatar);
     if (typeof raw.profileAsked === 'boolean') s.profileAsked = raw.profileAsked;
+    if (['slow', 'normal', 'fast'].includes(raw.gameSpeed)) s.gameSpeed = raw.gameSpeed;
     s.rules = normalizeRules(raw.rules, isMatchType(raw.matchType) ? raw.matchType : 'tonnan');
     s.presets = normalizePresets(raw.presets);
   }

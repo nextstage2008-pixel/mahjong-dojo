@@ -328,7 +328,7 @@ function showSettings(host, inGame, onClose) {
         const k = seg.slice(5);
         const value = k === 'red' ? Number(v) : k === 'kuitan' || k === 'oka' ? v === 'on' : v;
         apply({ rules: normalizeRules({ ...settings.rules, [k]: value }) });
-      } else if (['chatter', 'coachLevel'].includes(seg)) apply({ [seg]: v });
+      } else if (['chatter', 'coachLevel', 'gameSpeed'].includes(seg)) apply({ [seg]: v });
       else apply({ [seg]: v === 'on' });
     }));
     box.querySelector('[data-act="rules-standard"]').addEventListener('click', () => {

@@ -9,7 +9,8 @@ const center = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
 // 河は回して置いてあるので、本物の牌は隠しておき、回していない土台の上で写しを飛ばして、着いたら入れ替える。
 // endTurn：着いたときの向き（河の回り方）。startTurn：飛び始めの向き
 // impact：自分の打牌（着地の沈み込みをはっきりさせる。先生のご要望「打感良く」）
-export function flyTile({ root, scale, fromRect, toEl, duration = 160, lift = 46, startTurn = 0, endTurn = 0, impact = false }) {
+// settle：着いたときの揺れの長さ（対局の速さで短くする）
+export function flyTile({ root, scale, fromRect, toEl, duration = 160, lift = 46, startTurn = 0, endTurn = 0, impact = false, settle = impact ? 160 : 110 }) {
   const rootRect = root.getBoundingClientRect();
   const to = center(toEl.getBoundingClientRect());
   const from = center(fromRect);
@@ -39,7 +40,7 @@ export function flyTile({ root, scale, fromRect, toEl, duration = 160, lift = 46
   return anim.finished.catch(() => {}).then(() => {
     fly.remove();
     toEl.style.visibility = '';
-    toEl.animate(impact ? [{ transform: 'scale(1.14,.8)' }, { transform: 'scale(.97,1.04)', offset: 0.55 }, { transform: 'scale(1,1)' }] : [{ transform: 'scale(1.06,.9)' }, { transform: 'scale(1,1)' }], { duration: impact ? 160 : 110, easing: 'ease-out' });
+    toEl.animate(impact ? [{ transform: 'scale(1.14,.8)' }, { transform: 'scale(.97,1.04)', offset: 0.55 }, { transform: 'scale(1,1)' }] : [{ transform: 'scale(1.06,.9)' }, { transform: 'scale(1,1)' }], { duration: settle, easing: 'ease-out' });
   });
 }
 

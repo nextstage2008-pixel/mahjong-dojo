@@ -128,6 +128,11 @@ export function cutInSpec(scene) {
 // 上がった人の席と上がり牌の光・ロンの矢印と牌・倒した手を見せる間
 export const FX_MS = { riichiGlow: 1800, stickDrop: 700, winGlow: 2600, ronArrow: 1200, reveal: 1600 };
 
+// 対局の速さ（2026-10-17 先生「スマホで反応が少し遅い・CPU の反応も少し遅い」→「設定で選べるように」）：流れの待ちと動きに掛ける倍率。
+// ゆっくり＝今までの長さ。既定は速い。演出（リーチ棒・光・カットイン）には掛けない
+export const PACE = { slow: 1, normal: 0.75, fast: 0.5 };
+export const paceOf = (settings) => PACE[settings && settings.gameSpeed] || PACE.fast;
+
 // 手牌をなぞる音（2026-10-17 先生「なぞったら、からからからみたいな軽快な音」）：パソコンのマウスで、さっきと違う牌に乗ったら鳴らす。
 // スマホの指・ペンでは鳴らさない（先生の判断）。続けて鳴らすのは TRACE_GAP_MS あける（速くなぞっても音が団子にならないように）。
 // tile：乗った牌（data-i。牌の外なら null）。last：さっき乗っていた牌。now・lastAt：今と前に鳴らした時刻（ミリ秒）
